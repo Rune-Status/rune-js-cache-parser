@@ -35,7 +35,7 @@ export class GameCache {
         this.dataFile = new RsBuffer(readFileSync(join(cacheDirectory, 'main_file_cache.dat')));
 
         for(let i = 0; i < INDEX_FILE_COUNT; i++) {
-            this.indexFiles.push(new RsBuffer(readFileSync(join(cacheDirectory, `cache/main_file_cache.idx${i}`))));
+            this.indexFiles.push(new RsBuffer(readFileSync(join(cacheDirectory, `main_file_cache.idx${i}`))));
         }
 
         this.definitionArchive = new CacheArchive(this.getCacheFile(0, 2));
