@@ -114,7 +114,7 @@ export function parseItemDefinitions(indices: DefinitionIndex[], archive: CacheA
                     teamIndex = buffer.readUnsignedByte();
                     break;
             }
-        };
+        }
 
         if(notedVersionOf !== -1) {
             if(itemDefinitions.has(notedVersionOf)) {

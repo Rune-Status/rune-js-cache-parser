@@ -7,6 +7,7 @@ import { CacheIndices } from './cache-indices';
 import { ItemDefinition, parseItemDefinitions } from './definitions/item-definitions';
 import { CacheMapRegions } from './map-regions/cache-map-regions';
 import { LandscapeObjectDefinition, parseLandscapeObjectDefinitions } from './definitions/landscape-object-definitions';
+import { NpcDefinition, parseNpcDefinitions } from './definitions/npc-definitions';
 
 const INDEX_FILE_COUNT = 5;
 const INDEX_SIZE = 6;
@@ -28,6 +29,7 @@ export class GameCache {
     public readonly definitionArchive: CacheArchive;
     public readonly versionListArchive: CacheArchive;
     public readonly itemDefinitions: Map<number, ItemDefinition>;
+    public readonly npcDefinitions: Map<number, NpcDefinition>;
     public readonly landscapeObjectDefinitions: Map<number, LandscapeObjectDefinition>;
     public readonly mapRegions: CacheMapRegions;
 
@@ -44,8 +46,9 @@ export class GameCache {
         this.cacheIndices = new CacheIndices(this.definitionArchive, this.versionListArchive);
 
         this.itemDefinitions = parseItemDefinitions(this.cacheIndices.itemDefinitionIndices, this.definitionArchive);
+        this.npcDefinitions = parseNpcDefinitions(this.cacheIndices.npcDefinitionIndices, this.definitionArchive);
         this.landscapeObjectDefinitions = parseLandscapeObjectDefinitions(this.cacheIndices.landscapeObjectDefinitionIndices, this.definitionArchive);
-
+        
         this.mapRegions = new CacheMapRegions();
         this.mapRegions.parseMapRegions(this.cacheIndices.mapRegionIndices, this);
 

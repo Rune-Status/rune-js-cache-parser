@@ -65,12 +65,20 @@ export class RsBuffer {
         }
     }
 
+    public ensureWritableCapacity(space: number): void {
+        if(this.getWritable() < this.writerIndex + space) {
+            const newBuffer = Buffer.alloc(this.writerIndex + space);
+            this.buffer.copy(newBuffer, 0, 0);
+            this.buffer = newBuffer;
+        }
+    }
+
     public writeBytes(fromBuffer: RsBuffer | Buffer): void {
         if(fromBuffer instanceof RsBuffer) {
             fromBuffer = fromBuffer.getData();
         }
 
-        this.ensureCapacity(this.getWriterIndex() + fromBuffer.length);
+        this.ensureCapacity(this.writerIndex + fromBuffer.length);
         fromBuffer.copy(this.getBuffer(), this.getWriterIndex(), 0);
         this.setWriterIndex(this.getWriterIndex() + fromBuffer.length);
     }
@@ -78,7 +86,7 @@ export class RsBuffer {
     public writeBits(bitCount: number, value: number): void {
         const byteCount: number = Math.ceil(bitCount / 8) + 1;
 
-        this.ensureCapacity(this.writerIndex + byteCount);
+        this.ensureWritableCapacity((this.bitIndex + 7) / 8 + byteCount);
 
         let byteIndex: number = this.bitIndex >> 3;
         let bitOffset: number = 8 - (this.bitIndex & 7);
@@ -108,12 +116,22 @@ export class RsBuffer {
         return this.buffer.readInt8(this.readerIndex++);
     }
 
-    public readNegativeOffsetByte(): number {
+    public readPreNegativeOffsetByte(): number {
         return 128 - (this.readByte() & 0xff);
+    }
+
+    public readPostNegativeOffsetByte(): number {
+        return (this.readByte() & 0xff) - 128;
     }
 
     public readShortBE(): number {
         const value = this.buffer.readInt16BE(this.readerIndex);
+        this.readerIndex += 2;
+        return value;
+    }
+
+    public readShortLE(): number {
+        const value = this.buffer.readInt16LE(this.readerIndex);
         this.readerIndex += 2;
         return value;
     }
@@ -124,8 +142,23 @@ export class RsBuffer {
         return value;
     }
 
+    public readUnsignedShortLE(): number {
+        const value = this.buffer.readUInt16LE(this.readerIndex);
+        this.readerIndex += 2;
+        return value;
+    }
+
     public readNegativeOffsetShortLE(): number {
         let value = (this.readByte() - 128 & 0xff) | ((this.readByte() & 0xff) << 8);
+        if(value > 32767) {
+            value -= 0x10000;
+        }
+
+        return value;
+    }
+
+    public readNegativeOffsetShortBE(): number {
+        let value = ((this.readByte() & 0xff) << 8) | (this.readByte() - 128 & 0xff);
         if(value > 32767) {
             value -= 0x10000;
         }
@@ -187,8 +220,18 @@ export class RsBuffer {
         this.buffer.writeUInt8(value, this.writerIndex++);
     }
 
+    public writeUnsignedShortBE(value: number): void {
+        this.buffer.writeUInt16BE(value, this.writerIndex);
+        this.writerIndex += 2;
+    }
+
     public writeShortBE(value: number): void {
         this.buffer.writeInt16BE(value, this.writerIndex);
+        this.writerIndex += 2;
+    }
+
+    public writeShortLE(value: number): void {
+        this.buffer.writeInt16LE(value, this.writerIndex);
         this.writerIndex += 2;
     }
 
@@ -226,6 +269,14 @@ export class RsBuffer {
         }
 
         this.writeByte(10); // end of line
+    }
+
+    public writeSmart(value: number): void {
+        if(value >= 128) {
+            this.writeShortBE(value);
+        } else {
+            this.writeByte(value);
+        }
     }
 
     public getReadable(): number {

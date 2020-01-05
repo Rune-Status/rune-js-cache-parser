@@ -17,11 +17,13 @@ export interface MapRegionIndex {
 export class CacheIndices {
 
     private _itemDefinitionIndices: DefinitionIndex[];
+    private _npcDefinitionIndices: DefinitionIndex[];
     private _landscapeObjectDefinitionIndices: DefinitionIndex[];
     private _mapRegionIndices: MapRegionIndex[];
 
     public constructor(private readonly definitionArchive: CacheArchive, private readonly versionListArchive: CacheArchive) {
         this.parseItemDefinitionIndices();
+        this.parseNpcDefinitionIndices();
         this.parseLandscapeObjectDefinitionIndices();
         this.parseMapRegionIndices();
     }
@@ -32,6 +34,14 @@ export class CacheIndices {
         this._landscapeObjectDefinitionIndices = this.parseDefinitionIndices('loc.idx');
 
         logger.info(`${this._landscapeObjectDefinitionIndices.length} landscape objects found within the game cache.`);
+    }
+
+    private parseNpcDefinitionIndices(): void {
+        logger.info('Parsing npc definition indices...');
+
+        this._npcDefinitionIndices = this.parseDefinitionIndices('npc.idx');
+
+        logger.info(`${this._npcDefinitionIndices.length} npcs found within the game cache.`);
     }
 
     private parseItemDefinitionIndices(): void {
@@ -78,6 +88,10 @@ export class CacheIndices {
 
     public get itemDefinitionIndices(): DefinitionIndex[] {
         return this._itemDefinitionIndices;
+    }
+
+    public get npcDefinitionIndices(): DefinitionIndex[] {
+        return this._npcDefinitionIndices;
     }
 
     public get landscapeObjectDefinitionIndices(): DefinitionIndex[] {
