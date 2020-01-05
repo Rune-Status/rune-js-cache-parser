@@ -16,6 +16,7 @@ From here, you'll have access to the following:
 - `gameCache.definitionArchive` : The game archive containing item, landscape object, and NPC definitions.
 - `gameCache.versionListArchive` : The game archive containing versions of maps, animations, graphics, etc.
 - `gameCache.itemDefinitions` : The parsed list of game item definitions (obj.dat).
+- `gameCache.npcDefinitions` : The parsed list of game npc definitions (npc.dat).
 - `gameCache.landscapeObjectDefinitions` : The parsed list of landscape object definitions (loc.dat).
 - `gameCache.mapRegions` : Information about the game's map regions.
 
