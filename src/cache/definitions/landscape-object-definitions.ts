@@ -78,7 +78,9 @@ export function parseLandscapeObjectDefinitions(indices: DefinitionIndex[], arch
                     break;
                 case 19:
                     hasOptions = buffer.readUnsignedByte() === 1;
-                    options = new Array(9);
+                    if(options === null) {
+                        options = new Array(5);
+                    }
                     break;
                 case 21:
                     // adjust to terrain = true
@@ -101,17 +103,9 @@ export function parseLandscapeObjectDefinitions(indices: DefinitionIndex[], arch
                 case 39:
                     buffer.readByte(); // model ambient light?
                     break;
-                case 30:
-                case 31:
-                case 32:
-                case 33:
-                case 34:
-                case 35:
-                case 36:
-                case 37:
-                case 38:
+                case 30: case 31: case 32: case 33: case 34: case 35: case 36: case 37: case 38:
                     if(options === null) {
-                        options = new Array(9);
+                        options = new Array(5);
                     }
                     options[opcode - 30] = buffer.readString();
                     break;
