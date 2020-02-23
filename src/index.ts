@@ -9,3 +9,5 @@ export { ItemDefinition, EarlyFormatItemDefinition, NewFormatItemDefinition } fr
 export { NpcDefinition, EarlyFormatNpcDefinition, NewFormatNpcDefinition } from './definitions/npc-definition';
 
 export { NewFormatGameCache } from './cache-new-format/new-format-game-cache';
+
+export { GameCache } from './cache';
