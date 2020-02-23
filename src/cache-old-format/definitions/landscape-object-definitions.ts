@@ -1,23 +1,11 @@
-import { DefinitionIndex } from '../cache-indices';
-import { CacheArchive } from '../cache-archive';
+import { EarlyDefinitionIndex } from '../early-cache-indices';
+import { EarlyCacheArchive } from '../early-cache-archive';
+import {
+    EarlyFormatLandscapeObjectDefinition,
+    LandscapeObjectDefinition
+} from '../../definitions/landscape-object-definition';
 
-export interface LandscapeObjectDefinition {
-    id: number;
-    name: string;
-    description: string;
-    sizeX: number;
-    sizeY: number;
-    solid: boolean;
-    walkable: boolean;
-    hasOptions: boolean;
-    options: string[];
-    face: number;
-    translateX: number;
-    translateY: number;
-    translateLevel: number;
-}
-
-export function parseLandscapeObjectDefinitions(indices: DefinitionIndex[], archive: CacheArchive): Map<number, LandscapeObjectDefinition> {
+export function parseLandscapeObjectDefinitions(indices: EarlyDefinitionIndex[], archive: EarlyCacheArchive): Map<number, LandscapeObjectDefinition> {
     const buffer = archive.getFileData('loc.dat');
     const landscapeObjectDefinitions: Map<number, LandscapeObjectDefinition> = new Map<number, LandscapeObjectDefinition>();
 
@@ -29,13 +17,16 @@ export function parseLandscapeObjectDefinitions(indices: DefinitionIndex[], arch
         let sizeX: number = 1;
         let sizeY: number = 1;
         let solid: boolean = true;
-        let walkable: boolean = true;
+        let nonWalkable: boolean = true;
         let hasOptions: boolean = false;
         let options: string[] = null;
         let face: number = 0;
         let translateX: number = 0;
         let translateY: number = 0;
         let translateLevel: number = 0;
+        let adjustToTerrain = false;
+        let nonFlatShading = false;
+        let animationId = -1;
 
         while(true) {
             const opcode = buffer.readUnsignedByte();
@@ -74,7 +65,7 @@ export function parseLandscapeObjectDefinitions(indices: DefinitionIndex[], arch
                     solid = false;
                     break;
                 case 18:
-                    walkable = false;
+                    nonWalkable = false;
                     break;
                 case 19:
                     hasOptions = buffer.readUnsignedByte() === 1;
@@ -83,16 +74,16 @@ export function parseLandscapeObjectDefinitions(indices: DefinitionIndex[], arch
                     }
                     break;
                 case 21:
-                    // adjust to terrain = true
+                    adjustToTerrain = true;
                     break;
                 case 22:
-                    // non flat shading = true
+                    nonFlatShading = true;
                     break;
                 case 23:
                     // ??? some flag set to true
                     break;
                 case 24:
-                    buffer.readShortBE(); // animation ID
+                    animationId = buffer.readShortBE(); // animation ID
                     break;
                 case 28:
                     buffer.readByte(); // ???
@@ -164,8 +155,9 @@ export function parseLandscapeObjectDefinitions(indices: DefinitionIndex[], arch
         }
 
         landscapeObjectDefinitions.set(cacheIndex.id, {
-            id: cacheIndex.id, name, description, sizeX, sizeY, solid, walkable, hasOptions, options, face, translateX, translateY, translateLevel
-        });
+            id: cacheIndex.id, format: 'EARLY', name, description, sizeX, sizeY, solid, nonWalkable, hasOptions, options, face, translateX, translateY, translateLevel,
+            adjustToTerrain, nonFlatShading, animationId
+        } as EarlyFormatLandscapeObjectDefinition);
     });
 
     return landscapeObjectDefinitions;

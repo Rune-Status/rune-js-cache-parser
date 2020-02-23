@@ -1,20 +1,8 @@
-import { DefinitionIndex } from '../cache-indices';
-import { CacheArchive } from '../cache-archive';
+import { EarlyDefinitionIndex } from '../early-cache-indices';
+import { EarlyCacheArchive } from '../early-cache-archive';
+import { EarlyFormatItemDefinition, ItemDefinition } from '../../definitions/item-definition';
 
-export interface ItemDefinition {
-    id: number;
-    name: string;
-    description: string;
-    stackable: boolean;
-    value: number;
-    members: boolean;
-    groundOptions: string[];
-    inventoryOptions: string[];
-    notedVersionOf: number;
-    teamIndex: number;
-}
-
-export function parseItemDefinitions(indices: DefinitionIndex[], archive: CacheArchive): Map<number, ItemDefinition> {
+export function parseItemDefinitions(indices: EarlyDefinitionIndex[], archive: EarlyCacheArchive): Map<number, ItemDefinition> {
     const buffer = archive.getFileData('obj.dat');
     const itemDefinitions: Map<number, ItemDefinition> = new Map<number, ItemDefinition>();
 
@@ -133,8 +121,8 @@ export function parseItemDefinitions(indices: DefinitionIndex[], archive: CacheA
         }
 
         itemDefinitions.set(cacheIndex.id, {
-            id: cacheIndex.id, name, description, stackable, value, members, groundOptions, inventoryOptions, notedVersionOf, teamIndex
-        });
+            id: cacheIndex.id, name, format: 'EARLY', description, stackable, value, members, groundOptions, inventoryOptions, notedVersionOf, teamIndex
+        } as EarlyFormatItemDefinition);
     });
 
     return itemDefinitions;

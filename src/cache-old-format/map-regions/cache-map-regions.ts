@@ -1,5 +1,5 @@
-import { MapRegionIndex } from '../cache-indices';
-import { GameCache } from '../game-cache';
+import { MapRegionIndex } from '../early-cache-indices';
+import { EarlyFormatGameCache } from '../early-format-game-cache';
 import { RsBuffer } from '../../net/rs-buffer';
 import { logger } from '@runejs/logger';
 
@@ -34,8 +34,8 @@ export class CacheMapRegions {
         this._landscapeObjectList = [];
     }
 
-    public parseMapRegions(mapRegionIndices: MapRegionIndex[], gameCache: GameCache): void {
-        logger.info('Parsing map regions...');
+    public parseMapRegions(mapRegionIndices: MapRegionIndex[], gameCache: EarlyFormatGameCache): void {
+        logger.info('Parsing early-cache map regions...');
 
         mapRegionIndices.forEach(mapRegionIndex => {
             const mapRegionX = ((mapRegionIndex.id >> 8) & 0xff) * 64;
@@ -60,7 +60,7 @@ export class CacheMapRegions {
             this.parseLandscape(landscapeBuffer, mapRegionX, mapRegionY);
         });
 
-        logger.info(`Parsed ${this._mapRegionTileList.length} map region tiles and ${this._landscapeObjectList.length} landscape objects.`);
+        logger.info(`Parsed ${this._mapRegionTileList.length} early-cache map region tiles and ${this._landscapeObjectList.length} landscape objects.`);
     }
 
     private parseLandscape(buffer: RsBuffer, mapRegionX: number, mapRegionY: number): void {
