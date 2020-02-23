@@ -1,6 +1,6 @@
 {
     "name": "@runejs/cache-parser",
-    "version": "0.2.2",
+    "version": "0.3.0-rc.0",
     "description": "A cache parser for the early RuneScape game cache (pre-400).",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",

@@ -2,8 +2,9 @@ import { NewCacheArchive } from '../new-cache-archive';
 import { RsBuffer } from '../../net/rs-buffer';
 import { NewFormatNpcDefinition, NpcDefinition } from '../../definitions/npc-definition';
 
-function decodeNpcDefinition(buffer: RsBuffer): NpcDefinition {
+function decodeNpcDefinition(id: number, buffer: RsBuffer): NpcDefinition {
     const def = new NewFormatNpcDefinition();
+    def.id = id;
 
     while(true) {
         const opcode = buffer.readUnsignedByte();
@@ -92,7 +93,7 @@ export function parseNpcDefinitions(archive: NewCacheArchive): Map<number, NpcDe
 
     for(let i = 0; i < archive.entries.length; i++) {
         const entry = archive.entries[i];
-        npcDefinitions.set(i, decodeNpcDefinition(entry));
+        npcDefinitions.set(i, decodeNpcDefinition(i, entry));
     }
 
     return npcDefinitions;

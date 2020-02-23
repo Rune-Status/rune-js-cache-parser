@@ -7,6 +7,7 @@ import { NewCacheArchive } from './new-cache-archive';
 import { decompressNewFormat } from '../util/compression-util';
 import { GameCache } from '../cache';
 import { parseNpcDefinitions } from './definitions/npc-definitions';
+import { parseLandscapeObjectDefinitions } from './definitions/landscape-object-definitions';
 
 /**
  * The class provides a unified, high-level API for reading the 400-era RuneScape cache.
@@ -48,6 +49,7 @@ export class NewFormatGameCache extends GameCache {
 
         this.itemDefinitions = parseItemDefinitions(itemDefinitionArchive);
         this.npcDefinitions = parseNpcDefinitions(npcDefinitionArchive);
+        this.landscapeObjectDefinitions = parseLandscapeObjectDefinitions(landscapeObjectDefinitionArchive);
     }
 
     public getCacheArchive(type: number, file: number): NewCacheArchive {

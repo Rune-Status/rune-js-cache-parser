@@ -6,7 +6,7 @@ import { EarlyCacheArchive } from './early-cache-archive';
 import { EarlyCacheIndices } from './early-cache-indices';
 import { parseItemDefinitions } from './definitions/item-definitions';
 import { CacheMapRegions } from './map-regions/cache-map-regions';
-import { LandscapeObjectDefinition, parseLandscapeObjectDefinitions } from './definitions/landscape-object-definitions';
+import { parseLandscapeObjectDefinitions } from './definitions/landscape-object-definitions';
 import { parseNpcDefinitions } from './definitions/npc-definitions';
 import { parseWidgets } from './screen/widgets';
 import { GameCache } from '../cache';
@@ -32,7 +32,6 @@ export class EarlyFormatGameCache extends GameCache {
     public readonly versionListArchive: EarlyCacheArchive;
     public readonly widgetArchive: EarlyCacheArchive;
     public readonly mediaArchive: EarlyCacheArchive;
-    public readonly landscapeObjectDefinitions: Map<number, LandscapeObjectDefinition>;
     public readonly mapRegions: CacheMapRegions;
 
     public constructor(cacheDirectory: string, options: { loadDefinitions: boolean, loadWidgets: boolean, loadMaps: boolean } =

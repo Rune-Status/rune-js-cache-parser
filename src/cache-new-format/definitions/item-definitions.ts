@@ -2,8 +2,9 @@ import { RsBuffer } from '../../net/rs-buffer';
 import { ItemDefinition, NewFormatItemDefinition } from '../../definitions/item-definition';
 import { NewCacheArchive } from '../new-cache-archive';
 
-function decodeItemDefinition(buffer: RsBuffer) {
+function decodeItemDefinition(id: number, buffer: RsBuffer) {
     const def = new NewFormatItemDefinition();
+    def.id = id;
 
     while(true) {
         const opcode = buffer.readUnsignedByte();
@@ -110,7 +111,7 @@ export function parseItemDefinitions(archive: NewCacheArchive): Map<number, Item
 
     for(let i = 0; i < archive.entries.length; i++) {
         const entry = archive.entries[i];
-        itemDefinitions.set(i, decodeItemDefinition(entry));
+        itemDefinitions.set(i, decodeItemDefinition(i, entry));
     }
 
     return itemDefinitions;

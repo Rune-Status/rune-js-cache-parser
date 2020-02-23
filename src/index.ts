@@ -3,8 +3,8 @@ export { EarlyCacheFile, EarlyFormatGameCache } from './cache-old-format/early-f
 export { EarlyArchiveFile, EarlyCacheArchive } from './cache-old-format/early-cache-archive';
 export { EarlyDefinitionIndex, MapRegionIndex, EarlyCacheIndices } from './cache-old-format/early-cache-indices';
 export { MapRegionTile, LandscapeObject, CacheMapRegions } from './cache-old-format/map-regions/cache-map-regions';
-export { LandscapeObjectDefinition } from './cache-old-format/definitions/landscape-object-definitions';
 
+export { LandscapeObjectDefinition, EarlyFormatLandscapeObjectDefinition, NewFormatLandscapeObjectDefinition } from './definitions/landscape-object-definition';
 export { ItemDefinition, EarlyFormatItemDefinition, NewFormatItemDefinition } from './definitions/item-definition';
 export { NpcDefinition, EarlyFormatNpcDefinition, NewFormatNpcDefinition } from './definitions/npc-definition';
 
