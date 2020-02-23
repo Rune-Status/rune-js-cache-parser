@@ -1,8 +1,8 @@
-import { CacheArchive } from './cache-archive';
+import { EarlyCacheArchive } from './early-cache-archive';
 import { RsBuffer } from '../net/rs-buffer';
 import { logger } from '@runejs/logger';
 
-export interface DefinitionIndex {
+export interface EarlyDefinitionIndex {
     id: number;
     offset: number;
 }
@@ -14,22 +14,28 @@ export interface MapRegionIndex {
     members: boolean;
 }
 
-export class CacheIndices {
+export class EarlyCacheIndices {
 
-    private _itemDefinitionIndices: DefinitionIndex[];
-    private _npcDefinitionIndices: DefinitionIndex[];
-    private _landscapeObjectDefinitionIndices: DefinitionIndex[];
+    private _itemDefinitionIndices: EarlyDefinitionIndex[];
+    private _npcDefinitionIndices: EarlyDefinitionIndex[];
+    private _landscapeObjectDefinitionIndices: EarlyDefinitionIndex[];
     private _mapRegionIndices: MapRegionIndex[];
 
-    public constructor(private readonly definitionArchive: CacheArchive, private readonly versionListArchive: CacheArchive) {
-        this.parseItemDefinitionIndices();
-        this.parseNpcDefinitionIndices();
-        this.parseLandscapeObjectDefinitionIndices();
-        this.parseMapRegionIndices();
+    public constructor(private readonly definitionArchive: EarlyCacheArchive, private readonly versionListArchive: EarlyCacheArchive,
+                       loadDefinitions: boolean, loadMaps: boolean) {
+        if(loadDefinitions) {
+            this.parseItemDefinitionIndices();
+            this.parseNpcDefinitionIndices();
+            this.parseLandscapeObjectDefinitionIndices();
+        }
+
+        if(loadMaps) {
+            this.parseMapRegionIndices();
+        }
     }
 
     private parseLandscapeObjectDefinitionIndices(): void {
-        logger.info('Parsing landscape object definition indices...');
+        logger.info('Parsing early-cache landscape object definition indices...');
 
         this._landscapeObjectDefinitionIndices = this.parseDefinitionIndices('loc.idx');
 
@@ -37,7 +43,7 @@ export class CacheIndices {
     }
 
     private parseNpcDefinitionIndices(): void {
-        logger.info('Parsing npc definition indices...');
+        logger.info('Parsing early-cache npc definition indices...');
 
         this._npcDefinitionIndices = this.parseDefinitionIndices('npc.idx');
 
@@ -45,17 +51,17 @@ export class CacheIndices {
     }
 
     private parseItemDefinitionIndices(): void {
-        logger.info('Parsing item definition indices...');
+        logger.info('Parsing early-cache item definition indices...');
 
         this._itemDefinitionIndices = this.parseDefinitionIndices('obj.idx');
 
         logger.info(`${this._itemDefinitionIndices.length} items found within the game cache.`);
     }
 
-    private parseDefinitionIndices(fileName: string): DefinitionIndex[] {
+    private parseDefinitionIndices(fileName: string): EarlyDefinitionIndex[] {
         const buffer: RsBuffer = this.definitionArchive.getFileData(fileName);
         const indexCount = buffer.readUnsignedShortBE();
-        const indices: DefinitionIndex[] = new Array(indexCount);
+        const indices: EarlyDefinitionIndex[] = new Array(indexCount);
         let offset = 2;
 
         for(let id = 0; id < indexCount; id++) {
@@ -67,7 +73,7 @@ export class CacheIndices {
     }
 
     private parseMapRegionIndices(): void {
-        logger.info('Parsing map region indices...');
+        logger.info('Parsing early-cache map region indices...');
 
         const buffer: RsBuffer = this.versionListArchive.getFileData('map_index');
         const indexCount = Math.floor(buffer.getBuffer().length / 7);
@@ -86,15 +92,15 @@ export class CacheIndices {
         logger.info(`${indexCount} map regions found within the game cache.`);
     }
 
-    public get itemDefinitionIndices(): DefinitionIndex[] {
+    public get itemDefinitionIndices(): EarlyDefinitionIndex[] {
         return this._itemDefinitionIndices;
     }
 
-    public get npcDefinitionIndices(): DefinitionIndex[] {
+    public get npcDefinitionIndices(): EarlyDefinitionIndex[] {
         return this._npcDefinitionIndices;
     }
 
-    public get landscapeObjectDefinitionIndices(): DefinitionIndex[] {
+    public get landscapeObjectDefinitionIndices(): EarlyDefinitionIndex[] {
         return this._landscapeObjectDefinitionIndices;
     }
 

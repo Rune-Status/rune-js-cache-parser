@@ -166,6 +166,10 @@ export class RsBuffer {
         return value;
     }
 
+    public readMediumBE(): number {
+        return ((this.readByte() & 0xff) << 16) + ((this.readByte() & 0xff) << 8) + (this.readByte() & 0xff);
+    }
+
     public readIntBE(): number {
         const value = this.buffer.readInt32BE(this.readerIndex);
         this.readerIndex += 4;
@@ -192,6 +196,17 @@ export class RsBuffer {
         let b: number;
 
         while((b = this.readByte()) !== 10) {
+            bytes.push(b);
+        }
+
+        return Buffer.from(bytes).toString();
+    }
+
+    public readNewString(): string {
+        const bytes: number[] = [];
+        let b: number;
+
+        while((b = this.readByte()) !== 0) {
             bytes.push(b);
         }
 

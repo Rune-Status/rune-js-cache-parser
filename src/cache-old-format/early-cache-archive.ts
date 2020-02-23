@@ -1,21 +1,21 @@
-import { CacheFile } from './game-cache';
+import { EarlyCacheFile } from './early-format-game-cache';
 import { RsBuffer } from '../net/rs-buffer';
-const seekBzip = require('seek-bzip');
+import { decompressBzip } from '../util/compression-util';
 
-export interface ArchiveFile {
+export interface EarlyArchiveFile {
     nameHash: number;
     uncompressedSize: number;
     compressedSize: number;
     offset: number;
 }
 
-export class CacheArchive {
+export class EarlyCacheArchive {
 
     private _compressed: boolean = false;
-    private _namedFiles: Map<number, ArchiveFile> = new Map<number, ArchiveFile>();
+    private _namedFiles: Map<number, EarlyArchiveFile> = new Map<number, EarlyArchiveFile>();
     private data: RsBuffer;
 
-    public constructor(cacheFile: CacheFile) {
+    public constructor(cacheFile: EarlyCacheFile) {
         let buffer = cacheFile.data;
         buffer.setReaderIndex(0);
 
@@ -24,7 +24,7 @@ export class CacheArchive {
 
         if(uncompressed !== compressed) {
             const compressedData = buffer.getUnreadData();
-            buffer = this.decompress(new RsBuffer(compressedData));
+            buffer = decompressBzip(new RsBuffer(compressedData));
             this._compressed = true;
         }
 
@@ -34,7 +34,7 @@ export class CacheArchive {
             const nameHash = buffer.readIntBE();
             const uncompressedSize = (buffer.readUnsignedByte() << 16) | (buffer.readUnsignedByte() << 8) | buffer.readUnsignedByte();
             const compressedSize = (buffer.readUnsignedByte() << 16) | (buffer.readUnsignedByte() << 8) | buffer.readUnsignedByte();
-            const archiveFile: ArchiveFile = {
+            const archiveFile: EarlyArchiveFile = {
                 nameHash, uncompressedSize, compressedSize, offset
             };
 
@@ -43,17 +43,6 @@ export class CacheArchive {
         }
 
         this.data = buffer;
-    }
-
-    private decompress(data: RsBuffer): RsBuffer {
-        const buffer = Buffer.alloc(data.getBuffer().length + 4);
-        data.getBuffer().copy(buffer, 4);
-        buffer[0] = 'B'.charCodeAt(0);
-        buffer[1] = 'Z'.charCodeAt(0);
-        buffer[2] = 'h'.charCodeAt(0);
-        buffer[3] = '1'.charCodeAt(0);
-
-        return new RsBuffer(seekBzip.decode(buffer));
     }
 
     private hashFileName(fileName: string): number {
@@ -91,7 +80,7 @@ export class CacheArchive {
             if(this.compressed) {
                 return buffer;
             } else {
-                return this.decompress(buffer);
+                return decompressBzip(buffer);
             }
         }
     }
@@ -100,7 +89,7 @@ export class CacheArchive {
         return this._compressed;
     }
 
-    public get namedFiles(): Map<number, ArchiveFile> {
+    public get namedFiles(): Map<number, EarlyArchiveFile> {
         return this._namedFiles;
     }
 }

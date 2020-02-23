@@ -1,5 +1,5 @@
-import { DefinitionIndex } from '../cache-indices';
-import { CacheArchive } from '../cache-archive';
+import { EarlyDefinitionIndex } from '../early-cache-indices';
+import { EarlyCacheArchive } from '../early-cache-archive';
 
 export interface LandscapeObjectDefinition {
     id: number;
@@ -17,7 +17,7 @@ export interface LandscapeObjectDefinition {
     translateLevel: number;
 }
 
-export function parseLandscapeObjectDefinitions(indices: DefinitionIndex[], archive: CacheArchive): Map<number, LandscapeObjectDefinition> {
+export function parseLandscapeObjectDefinitions(indices: EarlyDefinitionIndex[], archive: EarlyCacheArchive): Map<number, LandscapeObjectDefinition> {
     const buffer = archive.getFileData('loc.dat');
     const landscapeObjectDefinitions: Map<number, LandscapeObjectDefinition> = new Map<number, LandscapeObjectDefinition>();
 

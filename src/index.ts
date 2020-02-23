@@ -1,8 +1,11 @@
 export { RsBuffer } from './net/rs-buffer';
-export { CacheFile, GameCache } from './cache/game-cache';
-export { ArchiveFile, CacheArchive } from './cache/cache-archive';
-export { DefinitionIndex, MapRegionIndex, CacheIndices } from './cache/cache-indices';
-export { MapRegionTile, LandscapeObject, CacheMapRegions } from './cache/map-regions/cache-map-regions';
-export { ItemDefinition } from './cache/definitions/item-definitions';
-export { NpcDefinition } from './cache/definitions/npc-definitions';
-export { LandscapeObjectDefinition } from './cache/definitions/landscape-object-definitions';
+export { EarlyCacheFile, EarlyFormatGameCache } from './cache-old-format/early-format-game-cache';
+export { EarlyArchiveFile, EarlyCacheArchive } from './cache-old-format/early-cache-archive';
+export { EarlyDefinitionIndex, MapRegionIndex, EarlyCacheIndices } from './cache-old-format/early-cache-indices';
+export { MapRegionTile, LandscapeObject, CacheMapRegions } from './cache-old-format/map-regions/cache-map-regions';
+export { LandscapeObjectDefinition } from './cache-old-format/definitions/landscape-object-definitions';
+
+export { ItemDefinition, EarlyFormatItemDefinition, NewFormatItemDefinition } from './definitions/item-definition';
+export { NpcDefinition, EarlyFormatNpcDefinition, NewFormatNpcDefinition } from './definitions/npc-definition';
+
+export { NewFormatGameCache } from './cache-new-format/new-format-game-cache';
