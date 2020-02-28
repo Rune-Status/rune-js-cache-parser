@@ -2,6 +2,7 @@ import { RsBuffer } from '../net/rs-buffer';
 
 export class NewCacheArchive {
 
+    public buffer: RsBuffer;
     public entries: RsBuffer[];
 
     private constructor(size: number) {
@@ -10,6 +11,7 @@ export class NewCacheArchive {
 
     public static decodeArchive(buffer: RsBuffer, size: number): NewCacheArchive {
         const archive = new NewCacheArchive(size);
+        archive.buffer = buffer;
         buffer.setReaderIndex(buffer.getBuffer().length - 1);
         const chunks = buffer.readUnsignedByte();
 

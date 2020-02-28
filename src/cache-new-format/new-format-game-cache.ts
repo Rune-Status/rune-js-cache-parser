@@ -8,12 +8,13 @@ import { decompressNewFormat } from '../util/compression-util';
 import { GameCache } from '../cache';
 import { parseNpcDefinitions } from './definitions/npc-definitions';
 import { parseLandscapeObjectDefinitions } from './definitions/landscape-object-definitions';
+import { parseWidgets, WidgetDefinition } from './screen/widgets';
 
 /**
  * The class provides a unified, high-level API for reading the 400-era RuneScape cache.
  * @author Graham
  * @author `Discardedx2
- * @author TheBlackParade
+ * @author TheBlackParade: Definition parsing.
  */
 export class NewFormatGameCache extends GameCache {
 
@@ -25,6 +26,8 @@ export class NewFormatGameCache extends GameCache {
     private readonly dataChannel: RsBuffer;
     private readonly indexChannels: RsBuffer[];
     private readonly metaChannel: RsBuffer;
+
+    public readonly widgetDefinitions: Map<number, WidgetDefinition>;
 
     public constructor(cacheDirectory: string) {
         super();
@@ -47,9 +50,19 @@ export class NewFormatGameCache extends GameCache {
         const npcDefinitionArchive = this.getCacheArchive(2, 9);
         const landscapeObjectDefinitionArchive = this.getCacheArchive(2, 6);
 
+        const widgetReferenceTableData = decompressNewFormat(this.getCacheFile(255, 3));
+        const widgetReferenceTable = ReferenceTable.decodeReferenceTable(widgetReferenceTableData.data);
+
         this.itemDefinitions = parseItemDefinitions(itemDefinitionArchive);
         this.npcDefinitions = parseNpcDefinitions(npcDefinitionArchive);
         this.landscapeObjectDefinitions = parseLandscapeObjectDefinitions(landscapeObjectDefinitionArchive);
+        this.widgetDefinitions = parseWidgets(this, widgetReferenceTable);
+    }
+
+    public getCacheArchiveFile(referenceTable: ReferenceTable, type: number, file: number): NewCacheArchive {
+        const cacheFileData = decompressNewFormat(this.getCacheFile(type, file));
+        const entry = referenceTable.entries.get(file);
+        return NewCacheArchive.decodeArchive(cacheFileData.data, entry.capacity());
     }
 
     public getCacheArchive(type: number, file: number): NewCacheArchive {
