@@ -45,3 +45,4 @@ From here, you'll have access to the following:
 - `gameCache.itemDefinitions` : The parsed list of game item definitions.
 - `gameCache.npcDefinitions` : The parsed list of game npc definitions.
 - `gameCache.landscapeObjectDefinitions` : The parsed list of landscape object definitions.
+- `gameCache.widgetDefinitions` : The parsed list of game widgets (interfaces).

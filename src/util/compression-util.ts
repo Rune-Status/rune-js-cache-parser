@@ -1,4 +1,5 @@
 import { RsBuffer } from '../net/rs-buffer';
+import * as zlib from 'zlib';
 const seekBzip = require('seek-bzip');
 
 export function decompressBzip(data: RsBuffer): RsBuffer {
@@ -38,13 +39,12 @@ export function decompressNewFormat(buffer: RsBuffer): { type: number, data: RsB
         if(type == 1) { // BZIP2
             uncompressed = decompressBzip(compressed);
         } else if(type == 2) { // GZIP
-            throw `GZIP compression currently not supported!`;
-            //uncompressed = CompressionUtils.gunzip(compressed);
+            uncompressed = new RsBuffer(zlib.gunzipSync(compressed.getBuffer()));
         } else {
             throw `Invalid compression type`;
         }
 
-        if (uncompressed.getBuffer().length != uncompressedLength) {
+        if(uncompressed.getBuffer().length != uncompressedLength) {
             throw `Length mismatch`;
         }
 
