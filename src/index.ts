@@ -10,5 +10,6 @@ export { NpcDefinition, EarlyFormatNpcDefinition, NewFormatNpcDefinition } from 
 
 export { NewFormatGameCache } from './cache-new-format/new-format-game-cache';
 export { WidgetDefinition, WidgetChild } from './cache-new-format/screen/widgets';
+export { Sprite } from './cache-new-format/screen/sprites';
 
 export { GameCache } from './cache';
