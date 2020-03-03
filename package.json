@@ -1,6 +1,6 @@
 {
     "name": "@runejs/cache-parser",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "A cache data parser for 300~ and 400~ era RuneScape game caches.",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -20,11 +20,13 @@
     "homepage": "https://github.com/rune-js/cache-parser#readme",
     "dependencies": {
         "@runejs/logger": "^1.0.0",
+        "pngjs": "^3.4.0",
         "seek-bzip": "^1.0.5",
         "typescript": "^3.7.2"
     },
     "devDependencies": {
         "@types/node": "^12.12.6",
+        "@types/pngjs": "^3.4.1",
         "ts-node": "^8.5.4",
         "tslib": "^1.10.0"
     }
