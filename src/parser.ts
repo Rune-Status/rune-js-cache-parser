@@ -13,7 +13,7 @@ console.log(newFormatCache.npcDefinitions.get(0));
 console.log(earlyFormatCache.landscapeObjectDefinitions.get(8689));
 console.log(newFormatCache.landscapeObjectDefinitions.get(8689));*/
 
-// console.log(JSON.stringify(newFormatCache.widgetDefinitions.get(336).children[0], null, 4));
+console.log(JSON.stringify(newFormatCache.widgetDefinitions.get(336).children[0], null, 4));
 
 const sprites = newFormatCache.sprites;
 

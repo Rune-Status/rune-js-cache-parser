@@ -78,6 +78,8 @@ export class WidgetChild {
 
 export class WidgetDefinition {
     id: number;
+    crc: number;
+    version: number;
     children: WidgetChild[] = null;
 }
 
@@ -360,7 +362,7 @@ function parseIf3(id: number, buffer: RsBuffer): WidgetChild {
     return child;
 }
 
-function parseSingleWidget(id: number, buffer: RsBuffer): WidgetDefinition {
+function parseSingleWidget(id: number, crc: number, version: number, buffer: RsBuffer): WidgetDefinition {
     const children = new Array(1);
     if(buffer == null || buffer.getBuffer().length === 0) {
         children[0] = new WidgetChild();
@@ -374,10 +376,10 @@ function parseSingleWidget(id: number, buffer: RsBuffer): WidgetDefinition {
         }
     }
 
-    return { id, children };
+    return { id, crc, version, children };
 }
 
-function parseWidget(id: number, widgetArchive: NewCacheArchive): WidgetDefinition {
+function parseWidget(id: number, crc: number, version: number, widgetArchive: NewCacheArchive): WidgetDefinition {
     let children: WidgetChild[] = null;
 
     if(widgetArchive.entries.length > 0) {
@@ -400,7 +402,7 @@ function parseWidget(id: number, widgetArchive: NewCacheArchive): WidgetDefiniti
         }
     }
 
-    return { id, children };
+    return { id, crc, version, children };
 }
 
 export const parseWidgets = (gameCache: NewFormatGameCache, referenceTable: ReferenceTable): Map<number, WidgetDefinition> => {
@@ -411,12 +413,15 @@ export const parseWidgets = (gameCache: NewFormatGameCache, referenceTable: Refe
 
     for(let i = 0; i < widgetCount; i++) {
         const widgetFile = gameCache.getDecodedArchiveFile(referenceTable, 3, i);
+        const entry = referenceTable.entries.get(i);
+        const crc = entry?.crc || -1;
+        const version = entry?.version || 0;
 
         if(widgetFile.entries.length === 1 && widgetFile.entries[0].getBuffer().length === 0) {
             widgetFile.buffer.setReaderIndex(0);
-            widgets.set(i, parseSingleWidget(i, widgetFile.buffer));
+            widgets.set(i, parseSingleWidget(i, crc, version, widgetFile.buffer));
         } else {
-            widgets.set(i, parseWidget(i, widgetFile));
+            widgets.set(i, parseWidget(i, crc, version, widgetFile));
         }
     }
 
