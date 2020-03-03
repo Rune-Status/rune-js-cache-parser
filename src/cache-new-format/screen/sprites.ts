@@ -166,7 +166,11 @@ export const parseSprites = (gameCache: NewFormatGameCache, referenceTable: Refe
                 sprites.set(`${sprite.id}:${sprite.frame}`, sprite);
             }
         } else {
-            sprites.set(`${i}:0`, new Sprite(i, 0, entry.crc, entry.version, 0, 0));
+            if(entry) {
+                sprites.set(`${i}:0`, new Sprite(i, 0, entry.crc, entry.version, 0, 0));
+            } else {
+                sprites.set(`${i}:0`, new Sprite(i, 0, -1, 0, 0, 0));
+            }
         }
     }
 

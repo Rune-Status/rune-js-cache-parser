@@ -15,9 +15,9 @@ console.log(newFormatCache.landscapeObjectDefinitions.get(8689));*/
 
 // console.log(JSON.stringify(newFormatCache.widgetDefinitions.get(336).children[0], null, 4));
 
-//const sprites = newFormatCache.sprites;
+const sprites = newFormatCache.sprites;
 
-//console.log(sprites.get('12:0'));
+console.log(sprites.get('12:0'));
 
 /*sprites.forEach((sprite, key) => {
     if(!sprite || !sprite.pixels || sprite.pixels.length === 0 || sprite.height === 0 || sprite.width === 0) {
