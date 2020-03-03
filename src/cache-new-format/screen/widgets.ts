@@ -2,6 +2,7 @@ import { NewFormatGameCache } from '../new-format-game-cache';
 import { ReferenceTable } from '../reference-table';
 import { NewCacheArchive } from '../new-cache-archive';
 import { RsBuffer } from '../../net/rs-buffer';
+import { logger } from '@runejs/logger/dist/logger';
 
 export class WidgetChild {
     id: number;
@@ -406,16 +407,20 @@ export const parseWidgets = (gameCache: NewFormatGameCache, referenceTable: Refe
     const widgets = new Map<number, WidgetDefinition>();
     const widgetCount = referenceTable.entries.size;
 
-    for(let i = 0; i < widgetCount; i++) {
-        const widgetArchive = gameCache.getCacheArchiveFile(referenceTable, 3, i);
+    logger.info(`Parsing new format widget definitions...`);
 
-        if(widgetArchive.entries.length === 1 && widgetArchive.entries[0].getBuffer().length === 0) {
-            widgetArchive.buffer.setReaderIndex(0);
-            widgets.set(i, parseSingleWidget(i, widgetArchive.buffer));
+    for(let i = 0; i < widgetCount; i++) {
+        const widgetFile = gameCache.getDecodedArchiveFile(referenceTable, 3, i);
+
+        if(widgetFile.entries.length === 1 && widgetFile.entries[0].getBuffer().length === 0) {
+            widgetFile.buffer.setReaderIndex(0);
+            widgets.set(i, parseSingleWidget(i, widgetFile.buffer));
         } else {
-            widgets.set(i, parseWidget(i, widgetArchive));
+            widgets.set(i, parseWidget(i, widgetFile));
         }
     }
+
+    logger.info(`Parsed ${widgets.size} out of ${widgetCount} new format widget definitions.`);
 
     return widgets;
 };

@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { readFileSync } from 'fs';
+import { readFile, readFileSync } from 'fs';
 import { RsBuffer } from '../net/rs-buffer';
 import { ReferenceTable } from './reference-table';
 import { parseItemDefinitions } from './definitions/item-definitions';
@@ -9,6 +9,7 @@ import { GameCache } from '../cache';
 import { parseNpcDefinitions } from './definitions/npc-definitions';
 import { parseLandscapeObjectDefinitions } from './definitions/landscape-object-definitions';
 import { parseWidgets, WidgetDefinition } from './screen/widgets';
+import { parseSprites, Sprite } from './screen/sprites';
 
 /**
  * The class provides a unified, high-level API for reading the 400-era RuneScape cache.
@@ -23,12 +24,30 @@ export class NewFormatGameCache extends GameCache {
     public static readonly DATA_SIZE = 512;
     public static readonly SECTOR_SIZE = NewFormatGameCache.HEADER_SIZE + NewFormatGameCache.DATA_SIZE;
 
-    private readonly dataChannel: RsBuffer;
-    private readonly indexChannels: RsBuffer[];
-    private readonly metaChannel: RsBuffer;
+    private dataChannel: RsBuffer;
+    private indexChannels: RsBuffer[];
+    private metaChannel: RsBuffer;
 
-    public readonly widgetDefinitions: Map<number, WidgetDefinition>;
+    public widgetDefinitions: Map<number, WidgetDefinition>;
+    public sprites: Map<string, Sprite>;
 
+    /*
+     id0:   skeleton,
+     id1:   skin,
+     id2:   config (item/npc/object definitions),
+     id3:   widgets,
+     id4:   sound effects,
+     id5:   maps,
+     id6:   music,
+     id7:   models,
+     id8:   sprites,
+     id9:   textures,
+     id10:  huffman,
+     id11:  music2,
+     id12:  cs2 (client scripts),
+     id255: indices
+     */
+    // @TODO cleanup naming of things
     public constructor(cacheDirectory: string) {
         super();
 
@@ -46,28 +65,51 @@ export class NewFormatGameCache extends GameCache {
 
         this.metaChannel = new RsBuffer(readFileSync(join(cacheDirectory, 'main_file_cache.idx255')));
 
-        const itemDefinitionArchive = this.getCacheArchive(2, 10);
-        const npcDefinitionArchive = this.getCacheArchive(2, 9);
-        const landscapeObjectDefinitionArchive = this.getCacheArchive(2, 6);
+        this.parseCache();
+    }
 
-        const widgetReferenceTableData = decompressNewFormat(this.getCacheFile(255, 3));
+    private parseCache(): void {
+        const itemDefinitionArchive = this.getDecodedArchiveFileWithReferenceTable(2, 10);
+        const npcDefinitionArchive = this.getDecodedArchiveFileWithReferenceTable(2, 9);
+        const landscapeObjectDefinitionArchive = this.getDecodedArchiveFileWithReferenceTable(2, 6);
+
+        const widgetReferenceTableData = decompressNewFormat(this.getRawCacheFile(255, 3));
         const widgetReferenceTable = ReferenceTable.decodeReferenceTable(widgetReferenceTableData.data);
+
+        const spriteReferenceTableData = decompressNewFormat(this.getRawCacheFile(255, 8));
+        const spriteReferenceTable = ReferenceTable.decodeReferenceTable(spriteReferenceTableData.data);
 
         this.itemDefinitions = parseItemDefinitions(itemDefinitionArchive);
         this.npcDefinitions = parseNpcDefinitions(npcDefinitionArchive);
         this.landscapeObjectDefinitions = parseLandscapeObjectDefinitions(landscapeObjectDefinitionArchive);
         this.widgetDefinitions = parseWidgets(this, widgetReferenceTable);
+        this.sprites = parseSprites(this, spriteReferenceTable);
     }
 
-    public getCacheArchiveFile(referenceTable: ReferenceTable, type: number, file: number): NewCacheArchive {
-        const cacheFileData = decompressNewFormat(this.getCacheFile(type, file));
+    public getDecompressedFile(type: number, file: number): RsBuffer {
+        const fileData = this.getRawCacheFile(type, file);
+        if(!fileData || fileData.getBuffer().length < 1) {
+            return null;
+        }
+
+        const cacheFileData = decompressNewFormat(fileData);
+        return cacheFileData.data;
+    }
+
+    public getDecodedArchiveFile(referenceTable: ReferenceTable, type: number, file: number): NewCacheArchive {
+        const fileData = this.getRawCacheFile(type, file);
+        if(!fileData || fileData.getBuffer().length < 1) {
+            return null;
+        }
+
+        const cacheFileData = decompressNewFormat(fileData);
         const entry = referenceTable.entries.get(file);
         return NewCacheArchive.decodeArchive(cacheFileData.data, entry.capacity());
     }
 
-    public getCacheArchive(type: number, file: number): NewCacheArchive {
-        const cacheFileData = decompressNewFormat(this.getCacheFile(type, file));
-        const referenceTableData = decompressNewFormat(this.getCacheFile(255, type));
+    public getDecodedArchiveFileWithReferenceTable(type: number, file: number): NewCacheArchive {
+        const cacheFileData = decompressNewFormat(this.getRawCacheFile(type, file));
+        const referenceTableData = decompressNewFormat(this.getRawCacheFile(255, type));
         const referenceTable = ReferenceTable.decodeReferenceTable(referenceTableData.data);
 
         const entry = referenceTable.entries.get(file);
@@ -99,7 +141,7 @@ export class NewFormatGameCache extends GameCache {
         return { id, chunk, nextSector, type, data };
     }
 
-    public getCacheFile(type: number, id: number): RsBuffer {
+    public getRawCacheFile(type: number, id: number): RsBuffer {
         const indexChannel = type == 255 ? this.metaChannel : this.indexChannels[type];
 
         let ptr = id * NewFormatGameCache.INDEX_SIZE;

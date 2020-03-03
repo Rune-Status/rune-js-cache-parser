@@ -46,3 +46,4 @@ From here, you'll have access to the following:
 - `gameCache.npcDefinitions` : The parsed list of game npc definitions.
 - `gameCache.landscapeObjectDefinitions` : The parsed list of landscape object definitions.
 - `gameCache.widgetDefinitions` : The parsed list of game widgets (interfaces).
+- `gameCache.sprites` : A map of sprites stored within the game cache with an included `toPng` function.
