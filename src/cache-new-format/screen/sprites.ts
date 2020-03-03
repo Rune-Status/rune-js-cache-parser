@@ -23,7 +23,8 @@ export class Sprite {
     palette: number[];
     pixels: number[];
 
-    public constructor(public id: number, public frame: number, public maxWidth: number, public maxHeight: number) {
+    public constructor(public id: number, public frame: number, public crc: number, public version: number,
+                       public maxWidth: number, public maxHeight: number) {
     }
 
     public toPng() {
@@ -52,7 +53,7 @@ export class Sprite {
 
 }
 
-function parseSprite(id: number, file: RsBuffer): Sprite[] {
+function parseSprite(id: number, crc: number, version: number, file: RsBuffer): Sprite[] {
     file.setReaderIndex(file.getBuffer().length - 2);
     const spriteCount = file.readUnsignedShortBE();
     const sprites: Sprite[] = new Array(spriteCount);
@@ -63,7 +64,7 @@ function parseSprite(id: number, file: RsBuffer): Sprite[] {
     const paletteLength = file.readUnsignedByte() + 1;
 
     for(let i = 0; i < spriteCount; i++) {
-        sprites[i] = new Sprite(id, i, width, height);
+        sprites[i] = new Sprite(id, i, crc, version, width, height);
     }
 
     for(let i = 0; i < spriteCount; i++) {
@@ -155,14 +156,17 @@ export const parseSprites = (gameCache: NewFormatGameCache, referenceTable: Refe
     logger.info(`Parsing new format sprites...`);
 
     for(let i = 0; i < spriteCount; i++) {
+        const entry = referenceTable.entries.get(i);
         const spriteFile = gameCache.getDecompressedFile(8, i);
 
         if(spriteFile && spriteFile.getBuffer().length > 0) {
-            const parsedSprites = parseSprite(i, spriteFile);
+            const parsedSprites = parseSprite(i, entry.crc, entry.version, spriteFile);
 
             for(const sprite of parsedSprites) {
                 sprites.set(`${sprite.id}:${sprite.frame}`, sprite);
             }
+        } else {
+            sprites.set(`${i}:0`, null);
         }
     }
 
