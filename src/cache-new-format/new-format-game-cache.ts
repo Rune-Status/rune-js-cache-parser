@@ -24,9 +24,9 @@ export class NewFormatGameCache extends GameCache {
     public static readonly DATA_SIZE = 512;
     public static readonly SECTOR_SIZE = NewFormatGameCache.HEADER_SIZE + NewFormatGameCache.DATA_SIZE;
 
-    private dataChannel: RsBuffer;
-    private indexChannels: RsBuffer[];
-    private metaChannel: RsBuffer;
+    public dataChannel: RsBuffer;
+    public indexChannels: RsBuffer[];
+    public metaChannel: RsBuffer;
 
     public widgetDefinitions: Map<number, WidgetDefinition>;
     public sprites: Map<string, Sprite>;
