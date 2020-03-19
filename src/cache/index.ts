@@ -1,8 +1,8 @@
-import { RsBuffer } from '..';
 import { Archive } from './archive';
 import { JagexFile } from './jagex-file';
 import { hash } from '../util/name-hash';
 import { Cache } from './cache';
+import { ByteBuffer } from '../net/byte-buffer';
 
 /**
  * A list of cache index types.
@@ -37,7 +37,7 @@ export class Index {
     public flags: number;
     public archives: Map<number, Archive> = new Map<number, Archive>();
 
-    public constructor(private cache: Cache, public id: number, private buffer: RsBuffer) {
+    public constructor(private cache: Cache, public id: number, private buffer: ByteBuffer) {
         this.parseIndex();
     }
 
@@ -127,17 +127,17 @@ export class Index {
 
     private parseIndex(): void {
         /* read header */
-        this.format = this.buffer.readUnsignedByte();
+        this.format = this.buffer.get('BYTE', 'UNSIGNED');
         if(this.format >= 6) {
-            this.version = this.buffer.readIntBE();
+            this.version = this.buffer.get('INT');
         }
-        this.flags = this.buffer.readUnsignedByte();
+        this.flags = this.buffer.get('BYTE', 'UNSIGNED');
 
         /* read the ids */
-        const ids: number[] = new Array(this.buffer.readUnsignedShortBE());
+        const ids: number[] = new Array(this.buffer.get('SHORT', 'UNSIGNED'));
         let accumulator = 0, size = -1;
         for(let i = 0; i < ids.length; i++) {
-            let delta = this.buffer.readUnsignedShortBE();
+            let delta = this.buffer.get('SHORT', 'UNSIGNED');
             ids[i] = accumulator += delta;
             if(ids[i] > size) {
                 size = ids[i];
@@ -152,33 +152,33 @@ export class Index {
         /* read the name hashes if present */
         if((this.flags & Index.FLAG_NAME) != 0) {
             for(const id of ids) {
-                this.archives.get(id).nameHash = this.buffer.readIntBE();
+                this.archives.get(id).nameHash = this.buffer.get('INT');
             }
         }
 
         /* read the crc checksums */
         for(const id of ids) {
-            this.archives.get(id).crc = this.buffer.readIntBE();
+            this.archives.get(id).crc = this.buffer.get('INT');
         }
 
         /* read the whirlpool digests */
         if((this.flags & Index.FLAG_WHIRLPOOL) != 0) {
             for(const id of ids) {
-                this.buffer.getBuffer().copy(this.archives.get(id).whirlpool.getBuffer(), 0,
-                    this.buffer.getReaderIndex(), this.buffer.getReaderIndex() + 64);
-                this.buffer.setReaderIndex(this.buffer.getReaderIndex() + 64);
+                this.buffer.copy(this.archives.get(id).whirlpool, 0,
+                    this.buffer.readerIndex, this.buffer.readerIndex + 64);
+                this.buffer.readerIndex = (this.buffer.readerIndex + 64);
             }
         }
 
         /* read the version numbers */
         for(const id of ids) {
-            this.archives.get(id).version = this.buffer.readIntBE();
+            this.archives.get(id).version = this.buffer.get('INT');
         }
 
         /* read the child sizes */
         const members: number[][] = new Array(size).fill([]);
         for(const id of ids) {
-            members[id] = new Array(this.buffer.readUnsignedShortBE());
+            members[id] = new Array(this.buffer.get('SHORT', 'UNSIGNED'));
         }
 
         /* read the child ids */
@@ -187,7 +187,7 @@ export class Index {
             size = -1;
 
             for(let i = 0; i < members[id].length; i++) {
-                let delta = this.buffer.readUnsignedShortBE();
+                let delta = this.buffer.get('SHORT', 'UNSIGNED');
                 members[id][i] = accumulator += delta;
                 if(members[id][i] > size) {
                     size = members[id][i];
@@ -206,7 +206,7 @@ export class Index {
         if((this.flags & Index.FLAG_NAME) != 0) {
             for(const id of ids) {
                 for(const childId of members[id]) {
-                    this.archives.get(id).files.get(childId).nameHash = this.buffer.readIntBE();
+                    this.archives.get(id).files.get(childId).nameHash = this.buffer.get('INT');
                 }
             }
         }

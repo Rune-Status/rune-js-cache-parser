@@ -63,44 +63,44 @@ export class Sprite {
 function decodeSpriteArchive(id: number, crc: number, version: number, archive: Archive): Sprite[] {
     const buffer = archive.content;
 
-    buffer.setReaderIndex(buffer.getBuffer().length - 2);
-    const spriteCount = buffer.readUnsignedShortBE();
+    buffer.readerIndex = (buffer.length - 2);
+    const spriteCount = buffer.get('SHORT', 'UNSIGNED');
     const sprites: Sprite[] = new Array(spriteCount);
 
-    buffer.setReaderIndex(buffer.getBuffer().length - 7 - spriteCount * 8);
-    const width = buffer.readUnsignedShortBE();
-    const height = buffer.readUnsignedShortBE();
-    const paletteLength = buffer.readUnsignedByte() + 1;
+    buffer.readerIndex = (buffer.length - 7 - spriteCount * 8);
+    const width = buffer.get('SHORT', 'UNSIGNED');
+    const height = buffer.get('SHORT', 'UNSIGNED');
+    const paletteLength = buffer.get('BYTE', 'UNSIGNED') + 1;
 
     for(let i = 0; i < spriteCount; i++) {
         sprites[i] = new Sprite(id, i, crc, version, width, height);
     }
 
     for(let i = 0; i < spriteCount; i++) {
-        sprites[i].offsetX = buffer.readUnsignedShortBE();
+        sprites[i].offsetX = buffer.get('SHORT', 'UNSIGNED');
     }
     for(let i = 0; i < spriteCount; i++) {
-        sprites[i].offsetY = buffer.readUnsignedShortBE();
+        sprites[i].offsetY = buffer.get('SHORT', 'UNSIGNED');
     }
     for(let i = 0; i < spriteCount; i++) {
-        sprites[i].width = buffer.readUnsignedShortBE();
+        sprites[i].width = buffer.get('SHORT', 'UNSIGNED');
     }
     for(let i = 0; i < spriteCount; i++) {
-        sprites[i].height = buffer.readUnsignedShortBE();
+        sprites[i].height = buffer.get('SHORT', 'UNSIGNED');
     }
 
-    buffer.setReaderIndex(buffer.getBuffer().length - 7 - spriteCount * 8 - (paletteLength - 1) * 3);
+    buffer.readerIndex = (buffer.length - 7 - spriteCount * 8 - (paletteLength - 1) * 3);
     const palette: number[] = new Array(paletteLength);
 
     for(let i = 1; i < paletteLength; i++) {
-        palette[i] = buffer.readMediumBE();
+        palette[i] = buffer.get('INT24');
 
         if(palette[i] === 0) {
             palette[i] = 1;
         }
     }
 
-    buffer.setReaderIndex(0);
+    buffer.readerIndex = 0;
 
     for(let i = 0; i < spriteCount; i++) {
         const sprite = sprites[i];
@@ -111,16 +111,16 @@ function decodeSpriteArchive(id: number, crc: number, version: number, archive: 
         const pixelAlphas: number[] = new Array(dimension);
         sprite.palette = palette;
 
-        const flags = buffer.readUnsignedByte();
+        const flags = buffer.get('BYTE', 'UNSIGNED');
 
         if((flags & 0b01) === 0) {
             for(let j = 0; j < dimension; j++) {
-                pixelPaletteIndicies[j] = buffer.readByte();
+                pixelPaletteIndicies[j] = buffer.get('BYTE');
             }
         } else {
             for(let x = 0; x < spriteWidth; x++) {
                 for(let y = 0; y < spriteHeight; y++) {
-                    pixelPaletteIndicies[spriteWidth * y + x] = buffer.readByte();
+                    pixelPaletteIndicies[spriteWidth * y + x] = buffer.get('BYTE');
                 }
             }
         }
@@ -135,12 +135,12 @@ function decodeSpriteArchive(id: number, crc: number, version: number, archive: 
         } else {
             if((flags & 0b01) === 0) {
                 for(let j = 0; j < dimension; j++) {
-                    pixelAlphas[j] = buffer.readByte();
+                    pixelAlphas[j] = buffer.get('BYTE');
                 }
             } else {
                 for(let x = 0; x < spriteWidth; x++) {
                     for(let y = 0; y < spriteHeight; y++) {
-                        pixelAlphas[spriteWidth * y + x] = buffer.readByte();
+                        pixelAlphas[spriteWidth * y + x] = buffer.get('BYTE');
                     }
                 }
             }
@@ -170,7 +170,7 @@ export const decodeSprites = (cache: Cache): Map<string, Sprite> => {
     for(let i = 0; i < spriteCount; i++) {
         const spriteArchive = cache.getFile(cache.indices.get(IndexType.SPRITES), i);
 
-        if(spriteArchive && spriteArchive.content.getBuffer().length > 0) {
+        if(spriteArchive && spriteArchive.content.length > 0) {
             const parsedSprites = decodeSpriteArchive(i, spriteArchive.crc, spriteArchive.version, spriteArchive);
 
             for(const sprite of parsedSprites) {
