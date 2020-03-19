@@ -4,15 +4,23 @@ import { Archive } from '../archive';
 import { logger } from '@runejs/logger/dist/logger';
 
 export class Tile {
+    flags: number = 0;
     height: number;
     attrOpcode: number;
     overlayId: number;
     overlayPath: number;
     overlayOrientation: number;
-    flags: number = 0;
     underlayId: number;
+    bridge: boolean;
+    nonWalkable: boolean;
 
     public constructor(public x: number, public y: number, public level: number) {
+    }
+
+    public setFlags(flags: number): void {
+        this.flags = flags;
+        this.bridge = (this.flags & 0x2) == 0x2;
+        this.nonWalkable = (this.flags & 0x1) == 0x1;
     }
 }
 
@@ -30,14 +38,14 @@ export interface MapData {
     locationObjects: LocationObject[];
 }
 
-function decodeTiles(mapArchive: Archive, loadAllTiles: boolean = false): Tile[] {
+function decodeTiles(mapArchive: Archive, mapRegionX: number, mapRegionY: number, loadAllTiles: boolean = false): Tile[] {
     const tiles: Tile[] = [];
     const buffer = mapArchive.content;
 
     for(let level = 0; level < 4; level++) {
         for(let x = 0; x < 64; x++) {
             for(let y = 0; y < 64; y++) {
-                const tile = new Tile(x, y, level);
+                const tile = new Tile(x + mapRegionX, y + mapRegionY, level);
 
                 while(true) {
                     const opcode = buffer.readUnsignedByte();
@@ -53,7 +61,7 @@ function decodeTiles(mapArchive: Archive, loadAllTiles: boolean = false): Tile[]
                         tile.overlayPath = (opcode - 2) / 4;
                         tile.overlayOrientation = opcode - 2 & 3;
                     } else if(opcode <= 81) {
-                        tile.flags = opcode - 49;
+                        tile.setFlags(opcode - 49);
                     } else {
                         tile.underlayId = opcode - 81;
                     }
@@ -99,10 +107,10 @@ function decodeObjects(locationArchive: Archive, mapRegionX: number, mapRegionY:
 
             const x = (objectPositionInfo >> 6 & 0x3f) + mapRegionX;
             const y = (objectPositionInfo & 0x3f) + mapRegionY;
-            const level = objectPositionInfo >> 12;
+            const level = objectPositionInfo >> 12 & 0x3;
             const objectMetadata = buffer.readUnsignedByte();
             const type = objectMetadata >> 2;
-            const orientation = objectMetadata & 3;
+            const orientation = objectMetadata & 0x3;
 
             objects.push({ objectId, x, y, level, type, orientation });
         }
@@ -119,11 +127,13 @@ export const decodeRegions = (cache: Cache): MapData => {
     let validMaps = 0;
 
     for(let i = 0; i < 32768; i++) {
-        let x = i >> 8;
-        let y = i & 0xff;
+        const x = i >> 8;
+        const y = i & 0xff;
+        const worldX = (x & 0xff) * 64;
+        const worldY = y * 64;
 
         const mapTileArchive = index.getFile(`m${x}_${y}`);
-        const locationObjectArchive = index.getFile(`l${x}_${y}`);
+        let locationObjectArchive = index.getFile(`l${x}_${y}`);
 
         if(mapTileArchive === null) {
             continue;
@@ -131,14 +141,14 @@ export const decodeRegions = (cache: Cache): MapData => {
 
         validMaps++;
 
-        tiles.push(...decodeTiles(mapTileArchive));
+        tiles.push(...decodeTiles(mapTileArchive, worldX, worldY));
 
         if(locationObjectArchive === null) {
             missingXtea++;
             continue;
         }
 
-        locationObjects.push(...decodeObjects(locationObjectArchive, x, y));
+        locationObjects.push(...decodeObjects(locationObjectArchive, worldX, worldY));
     }
 
     logger.info(`Decoded ${tiles.length} map tiles.`);

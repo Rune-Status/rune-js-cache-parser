@@ -64,6 +64,19 @@ export class Index {
     }
 
     /**
+     * Fetches a file's ID based on the given file name.
+     * @param name The name of the file to search for.
+     */
+    public getFileId(name: string): number {
+        let archive = this.findArchiveOrFile(name);
+        if(!archive) {
+            return -1;
+        }
+
+        return archive.id;
+    }
+
+    /**
      * Fetches an archive from this index by ID or by name.
      * @param identifier The ID or name of the archive to search for.
      * @param keys The XTEA keys used to decrypt this archive.
