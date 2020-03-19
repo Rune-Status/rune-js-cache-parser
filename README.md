@@ -57,7 +57,7 @@ From here, you'll have access to the following (if specified in `options`):
 
 - `cache.itemDefinitions` : The decoded list of game item definitions.
 - `cache.npcDefinitions` : The decoded list of game npc definitions.
-- `cache.landscapeObjectDefinitions` : The decoded list of landscape object definitions.
+- `cache.locationObjectDefinitions` : The decoded list of location object definitions.
 - `cache.widgets` : The decoded list of game widgets (interfaces).
 - `cache.sprites` : A decoded map of sprites stored within the game cache with an included `toPng` function.
 - `cache.mapData` : Decoded information about the game's map regions.
