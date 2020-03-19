@@ -1,9 +1,54 @@
-import { NewCacheArchive } from '../new-cache-archive';
-import { RsBuffer } from '../../net/rs-buffer';
-import { NewFormatNpcDefinition, NpcDefinition } from '../../definitions/npc-definition';
+import { JagexFile } from '../jagex-file';
+import { IndexType } from '../index';
+import { Cache } from '../cache';
+import { logger } from '@runejs/logger/dist/logger';
 
-function decodeNpcDefinition(id: number, buffer: RsBuffer): NpcDefinition {
-    const def = new NewFormatNpcDefinition();
+export class NpcDefinition {
+    id: number;
+    name: string;
+    animations: {
+        stand: number;
+        walk: number;
+        turnAround: number;
+        turnRight: number;
+        turnLeft: number;
+    };
+    options: string[] = [ null, null, null, null, null ];
+    models: number[];
+    headModels: number[];
+    minimapVisible: boolean;
+    combatLevel: number;
+    boundary: number;
+    sizeX: number;
+    sizeY: number;
+    renderPriority: boolean;
+    headIcon: number;
+    clickable: boolean;
+    turnDegrees: number;
+
+    constructor() {
+        this.animations = {
+            stand: -1,
+            walk: -1,
+            turnAround: -1,
+            turnRight: -1,
+            turnLeft: -1
+        };
+        this.sizeX = 128;
+        this.sizeY = 128;
+        this.turnDegrees = 32;
+        this.boundary = 1;
+        this.minimapVisible = true;
+        this.renderPriority = false;
+        this.clickable = true;
+        this.combatLevel = -1;
+        this.headIcon = -1;
+    }
+}
+
+function decodeNpc(id: number, file: JagexFile): NpcDefinition {
+    const buffer = file.content;
+    const def = new NpcDefinition();
     def.id = id;
 
     while(true) {
@@ -88,13 +133,20 @@ function decodeNpcDefinition(id: number, buffer: RsBuffer): NpcDefinition {
     return def;
 }
 
-export function parseNpcDefinitions(archive: NewCacheArchive): Map<number, NpcDefinition> {
-    const npcDefinitions = new Map<number, NpcDefinition>();
+/**
+ * Parses the NPC definition archive.
+ * @param cache The game cache instance.
+ */
+export function decodeNpcDefinitions(cache: Cache): Map<number, NpcDefinition> {
+    const archive = cache.getArchive(IndexType.DEFINITIONS, 9);
+    const npcs = new Map<number, NpcDefinition>();
 
-    for(let i = 0; i < archive.entries.length; i++) {
-        const entry = archive.entries[i];
-        npcDefinitions.set(i, decodeNpcDefinition(i, entry));
+    for(let i = 0; i < archive.files.size; i++) {
+        const npcFile = archive.files.get(i);
+        npcs.set(i, decodeNpc(i, npcFile));
     }
 
-    return npcDefinitions;
+    logger.info(`Decoded ${npcs.size} NPC definitions.`);
+
+    return npcs;
 }

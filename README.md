@@ -2,7 +2,7 @@
 
 A cache data parser for 300~ and 400~ era RuneScape game caches.
 
-Currently this package is only for parsing, not packaging. Cache packaging is planned for a future release.
+Currently this package is only for decoding, not packaging. Cache re-packaging is planned for a future release.
 
 ## Usage: 300-era Caches
 
@@ -36,14 +36,33 @@ From here, you'll have access to the following:
 
 ## Usage: 400-era Caches
 
-New up an instance of the `NewFormatGameCache` class:
+New up an instance of the `Cache` class:
 
-`const gameCache = new NewFormatGameCache('your-cache-directory');`
+`const cache = new Cache('your-cache-directory', options);`
 
-From here, you'll have access to the following:
+`options` is an interface with the following properties:
 
-- `gameCache.itemDefinitions` : The parsed list of game item definitions.
-- `gameCache.npcDefinitions` : The parsed list of game npc definitions.
-- `gameCache.landscapeObjectDefinitions` : The parsed list of landscape object definitions.
-- `gameCache.widgetDefinitions` : The parsed list of game widgets (interfaces).
-- `gameCache.sprites` : A map of sprites stored within the game cache with an included `toPng` function.
+```
+items?: boolean;
+npcs?: boolean;
+locationObjects?: boolean;
+widgets?: boolean;
+sprites?: boolean;
+mapData?: boolean;
+```
+
+To automatically decode content archives, set the desired value to true within the options passed to the `Cache` constructor. Alternatively, if you wish to decode all content, you can pass `true` as `options` to decode everything.
+
+From here, you'll have access to the following (if specified in `options`):
+
+- `cache.itemDefinitions` : The decoded list of game item definitions.
+- `cache.npcDefinitions` : The decoded list of game npc definitions.
+- `cache.landscapeObjectDefinitions` : The decoded list of landscape object definitions.
+- `cache.widgets` : The decoded list of game widgets (interfaces).
+- `cache.sprites` : A decoded map of sprites stored within the game cache with an included `toPng` function.
+- `cache.mapData` : Decoded information about the game's map regions.
+
+`cache.mapData` returns an object of the type `MapData`, which contains:
+
+- `mapData.tiles` : A list of all of the tiles within the game world that do not have a flag value of 0.
+- `mapData.locationObjects` : A list of all decrypted location objects within the game world (if XTEA keys are available).

@@ -1,5 +1,7 @@
 import { RsBuffer } from '../net/rs-buffer';
-import * as zlib from 'zlib';
+import { gunzipSync } from 'zlib';
+import { decryptXtea } from './xtea';
+import { logger } from '@runejs/logger/dist/logger';
 const seekBzip = require('seek-bzip');
 
 export function decompressBzip(data: RsBuffer): RsBuffer {
@@ -13,13 +15,14 @@ export function decompressBzip(data: RsBuffer): RsBuffer {
     return new RsBuffer(seekBzip.decode(buffer));
 }
 
-export function decompressNewFormat(buffer: RsBuffer): { type: number, data: RsBuffer, version: number } {
+export function decompress(buffer: RsBuffer, keys?: number[]): { type: number, buffer: RsBuffer, version: number } {
     const type = buffer.readUnsignedByte();
     const length = buffer.readIntBE();
 
     if(type == 0) {
-        const uncompressedData = RsBuffer.create(length);
-        buffer.getBuffer().copy(uncompressedData.getBuffer(), 0, buffer.getReaderIndex(), length);
+        const data = RsBuffer.create(length);
+        buffer.getBuffer().copy(data.getBuffer(), 0, buffer.getReaderIndex(), length);
+        const decryptedData = decryptXtea(data, keys, length);
         buffer.setReaderIndex(buffer.getReaderIndex() + length);
 
         let version = -1;
@@ -27,32 +30,38 @@ export function decompressNewFormat(buffer: RsBuffer): { type: number, data: RsB
             version = buffer.readShortBE();
         }
 
-        return { type, data: uncompressedData, version };
+        return { type, buffer: decryptedData, version };
     } else {
         const uncompressedLength = buffer.readIntBE();
 
         const compressed = RsBuffer.create(length);
         buffer.getBuffer().copy(compressed.getBuffer(), 0, buffer.getReaderIndex(), buffer.getReaderIndex() + length);
+        const decryptedData = decryptXtea(compressed, keys, length);
         buffer.setReaderIndex(buffer.getReaderIndex() + length);
 
-        let uncompressed: RsBuffer;
-        if(type == 1) { // BZIP2
-            uncompressed = decompressBzip(compressed);
-        } else if(type == 2) { // GZIP
-            uncompressed = new RsBuffer(zlib.gunzipSync(compressed.getBuffer()));
-        } else {
-            throw `Invalid compression type`;
-        }
+        try {
+            let uncompressed: RsBuffer;
+            if(type == 1) { // BZIP2
+                uncompressed = decompressBzip(decryptedData);
+            } else if(type == 2) { // GZIP
+                uncompressed = new RsBuffer(gunzipSync(decryptedData.getBuffer()));
+            } else {
+                throw new Error(`Invalid compression type`);
+            }
 
-        if(uncompressed.getBuffer().length != uncompressedLength) {
-            throw `Length mismatch`;
-        }
+            if(uncompressed.getBuffer().length != uncompressedLength) {
+                throw new Error(`Length mismatch`);
+            }
 
-        let version = -1;
-        if(buffer.getReadable() >= 2) {
-            version = buffer.readShortBE();
-        }
+            let version = -1;
+            if(buffer.getReadable() >= 2) {
+                version = buffer.readShortBE();
+            }
 
-        return { type, data: uncompressed, version };
+            return { type, buffer: uncompressed, version };
+        } catch(err) {
+            // logger.error(err);
+            return null;
+        }
     }
 }
