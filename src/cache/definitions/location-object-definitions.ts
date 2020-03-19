@@ -1,9 +1,45 @@
-import { RsBuffer } from '../../net/rs-buffer';
-import { NewFormatLandscapeObjectDefinition, LandscapeObjectDefinition } from '../../definitions/landscape-object-definition';
-import { Archive } from '../archive';
+import { JagexFile } from '../jagex-file';
+import { Cache } from '../cache';
+import { IndexType } from '../index';
+import { logger } from '@runejs/logger/dist/logger';
 
-function decodeLandscapeObjectDefinition(id: number, buffer: RsBuffer): LandscapeObjectDefinition {
-    const def = new NewFormatLandscapeObjectDefinition();
+export class LocationObjectDefinition {
+    id: number;
+    name: string;
+    sizeX: number;
+    sizeY: number;
+    solid: boolean;
+    nonWalkable: boolean;
+    hasOptions: boolean;
+    options: string[] = [ null, null, null, null, null ];
+    adjustToTerrain: boolean;
+    nonFlatShading: boolean;
+    animationId: number;
+    face: number;
+    translateX: number;
+    translateY: number;
+    translateLevel: number;
+    aBoolean2528: boolean;
+
+    public constructor() {
+        this.sizeX = 1;
+        this.sizeY = 1;
+        this.solid = true;
+        this.nonWalkable = true;
+        this.hasOptions = false;
+        this.face = 0;
+        this.translateX = 0;
+        this.translateY = 0;
+        this.translateLevel = 0;
+        this.adjustToTerrain = false;
+        this.nonFlatShading = false;
+        this.animationId = -1;
+    }
+}
+
+function decodeLocationObject(id: number, file: JagexFile): LocationObjectDefinition {
+    const buffer = file.content;
+    const def = new LocationObjectDefinition();
     def.id = id;
 
     while(true) {
@@ -119,13 +155,20 @@ function decodeLandscapeObjectDefinition(id: number, buffer: RsBuffer): Landscap
     return def;
 }
 
-export function parseLandscapeObjectDefinitions(archive: Archive): Map<number, LandscapeObjectDefinition> {
-    const landscapeObjectDefinitions = new Map<number, LandscapeObjectDefinition>();
+/**
+ * Parses the location object definition archive.
+ * @param cache The game cache instance.
+ */
+export function decodeLocationObjectDefinitions(cache: Cache): Map<number, LocationObjectDefinition> {
+    const archive = cache.getArchive(IndexType.DEFINITIONS, 6);
+    const locationObjects = new Map<number, LocationObjectDefinition>();
 
     for(let i = 0; i < archive.files.size; i++) {
-        const entry = archive.files.get(i).content;
-        landscapeObjectDefinitions.set(i, decodeLandscapeObjectDefinition(i, entry));
+        const objectFile = archive.files.get(i);
+        locationObjects.set(i, decodeLocationObject(i, objectFile));
     }
 
-    return landscapeObjectDefinitions;
+    logger.info(`Decoded ${locationObjects.size} location object definitions.`);
+
+    return locationObjects;
 }

@@ -1,6 +1,5 @@
 import { Cache } from '../cache';
-import { Index, IndexType } from '../index';
-import { RsBuffer } from '../../net/rs-buffer';
+import { IndexType } from '../index';
 import { PNG } from 'pngjs';
 import { logger } from '@runejs/logger/dist/logger';
 import { Archive } from '../archive';
@@ -54,8 +53,15 @@ export class Sprite {
 
 }
 
-function parseSpriteArchive(id: number, crc: number, version: number, archive: Archive): Sprite[] {
-    const buffer = archive.buffer;
+/**
+ * Parses a sprite archive.
+ * @param id The ID of the sprite archive.
+ * @param crc The CRC value of the sprite archive file.
+ * @param version The version number of the sprite archive file.
+ * @param archive The sprite archive itself.
+ */
+function decodeSpriteArchive(id: number, crc: number, version: number, archive: Archive): Sprite[] {
+    const buffer = archive.content;
 
     buffer.setReaderIndex(buffer.getBuffer().length - 2);
     const spriteCount = buffer.readUnsignedShortBE();
@@ -152,33 +158,34 @@ function parseSpriteArchive(id: number, crc: number, version: number, archive: A
     return sprites;
 }
 
-export const parseSprites = (gameCache: Cache): Map<string, Sprite> => {
-    const index = gameCache.indices.get(IndexType.SPRITES);
+/**
+ * Fetches the sprites from the game cache and parses them.
+ * @param cache The game cache instance.
+ */
+export const decodeSprites = (cache: Cache): Map<string, Sprite> => {
+    const index = cache.indices.get(IndexType.SPRITES);
     const sprites = new Map<string, Sprite>();
     const spriteCount = index.archives.size;
 
-    logger.info(`Parsing new format sprites...`);
-
     for(let i = 0; i < spriteCount; i++) {
-        const entry = index.archives.get(i);
-        const spriteArchive = gameCache.getFile(gameCache.indices.get(IndexType.SPRITES), i);
+        const spriteArchive = cache.getFile(cache.indices.get(IndexType.SPRITES), i);
 
-        if(spriteArchive && spriteArchive.buffer.getBuffer().length > 0) {
-            const parsedSprites = parseSpriteArchive(i, entry.crc, entry.version, spriteArchive);
+        if(spriteArchive && spriteArchive.content.getBuffer().length > 0) {
+            const parsedSprites = decodeSpriteArchive(i, spriteArchive.crc, spriteArchive.version, spriteArchive);
 
             for(const sprite of parsedSprites) {
                 sprites.set(`${sprite.id}:${sprite.frame}`, sprite);
             }
         } else {
-            if(entry) {
-                sprites.set(`${i}:0`, new Sprite(i, 0, entry.crc, entry.version, 0, 0));
+            if(spriteArchive) {
+                sprites.set(`${i}:0`, new Sprite(i, 0, spriteArchive.crc, spriteArchive.version, 0, 0));
             } else {
                 sprites.set(`${i}:0`, new Sprite(i, 0, -1, 0, 0, 0));
             }
         }
     }
 
-    logger.info(`Parsed ${sprites.size} new format sprites.`);
+    logger.info(`Decoded ${sprites.size} game sprites.`);
 
     return sprites;
 };

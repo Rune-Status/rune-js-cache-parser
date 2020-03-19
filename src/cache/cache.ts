@@ -1,17 +1,35 @@
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import { RsBuffer } from '../net/rs-buffer';
-import { Index, IndexType } from './index';
-import { parseItemDefinitions } from './definitions/item-definitions';
-import { decompress } from '../util/compression-util';
-import { GameCache } from '../cache';
-import { parseNpcDefinitions } from './definitions/npc-definitions';
-import { parseLandscapeObjectDefinitions } from './definitions/landscape-object-definitions';
-import { parseWidgets, WidgetDefinition } from './screen/widgets';
-import { parseSprites, Sprite } from './screen/sprites';
+import { Index } from './index';
 import { Archive } from './archive';
+import { decompress } from '../util/compression-util';
 
-export class Cache extends GameCache {
+import { decodeItemDefinitions, ItemDefinition } from './definitions/item-definitions';
+import { decodeNpcDefinitions, NpcDefinition } from './definitions/npc-definitions';
+import { decodeLocationObjectDefinitions, LocationObjectDefinition } from './definitions/location-object-definitions';
+import { decodeWidgets, Widget } from './screen/widgets';
+import { decodeSprites, Sprite } from './screen/sprites';
+import { decodeRegions, MapData } from './map/regions';
+import { logger } from '@runejs/logger/dist/logger';
+
+/**
+ * Details about which cache content archives to automatically decode when loading a game cache.
+ */
+export interface ContentOptions {
+    all?: boolean;
+    items?: boolean;
+    npcs?: boolean;
+    locationObjects?: boolean;
+    widgets?: boolean;
+    sprites?: boolean;
+    mapData?: boolean;
+}
+
+/**
+ * Holds information about the RuneScape game cache.
+ */
+export class Cache {
 
     public static readonly INDEX_SIZE = 6;
     public static readonly HEADER_SIZE = 8;
@@ -24,42 +42,63 @@ export class Cache extends GameCache {
 
     public indices: Map<number, Index> = new Map<number, Index>();
 
-    public widgetDefinitions: Map<number, WidgetDefinition>;
+    public itemDefinitions: Map<number, ItemDefinition>;
+    public npcDefinitions: Map<number, NpcDefinition>;
+    public locationObjectDefinitions: Map<number, LocationObjectDefinition>;
+    public widgets: Map<number, Widget>;
     public sprites: Map<string, Sprite>;
+    public mapData: MapData;
 
+    public constructor(public cacheDirectory: string, decodeContentArchives?: ContentOptions | boolean) {
+        this.createChannels();
+        this.decodeIndices();
 
-    public constructor(public cacheDirectory: string) {
-        super();
+        if(decodeContentArchives !== undefined) {
+            if(typeof decodeContentArchives === 'boolean') {
+                decodeContentArchives = { all: decodeContentArchives };
+            }
 
-        this.parseCache();
+            this.decodeContentArchives(decodeContentArchives);
+        }
     }
 
-    private parseCache(): void {
-        this.buildChannels();
-        this.parseIndices();
+    /**
+     * Decodes the specified content archives.
+     * @param options Options pertaining to which content archives to automatically decode.
+     */
+    public decodeContentArchives(options: ContentOptions): void {
+        logger.info(`Decoding content archives...`);
 
-        const itemDefinitionArchive = this.getArchive(this.indices.get(IndexType.DEFINITIONS), 10);
-        const npcDefinitionArchive = this.getArchive(this.indices.get(IndexType.DEFINITIONS), 9);
-        const landscapeObjectDefinitionArchive = this.getArchive(this.indices.get(IndexType.DEFINITIONS), 6);
+        const decoders = {
+            items: [ 'itemDefinitions', decodeItemDefinitions ],
+            npcs: [ 'npcDefinitions', decodeNpcDefinitions ],
+            locationObjects: [ 'locationObjectDefinitions', decodeLocationObjectDefinitions ],
+            widgets: [ 'widgets', decodeWidgets ],
+            sprites: [ 'sprites', decodeSprites ],
+            mapData: [ 'mapData', decodeRegions ]
+        };
 
-        const landscapeIndex = this.indices.get(IndexType.MAPS);
-        console.log('m = ' + landscapeIndex.archives.size);
+        const keys = Object.keys(decoders);
+        keys.forEach(type => {
+            if(!options[type] && !options.all) {
+                return;
+            }
 
-        this.itemDefinitions = parseItemDefinitions(itemDefinitionArchive);
-        this.npcDefinitions = parseNpcDefinitions(npcDefinitionArchive);
-        this.landscapeObjectDefinitions = parseLandscapeObjectDefinitions(landscapeObjectDefinitionArchive);
-        this.widgetDefinitions = parseWidgets(this);
-        this.sprites = parseSprites(this);
+            const decoder = decoders[type];
+            this[decoder[0]] = decoder[1](this);
+        });
+
+        logger.info(`Content archive decoding complete.`);
     }
 
-    private parseIndices(): void {
+    private decodeIndices(): void {
         for(let i = 0; i < this.indexChannels.length; i++) {
-            const indexData = decompress(this.getRawCacheFile(255, i));
+            const indexData = decompress(this.getRawFile(255, i));
             this.indices.set(i, new Index(this, i, indexData.buffer));
         }
     }
 
-    private buildChannels(): void {
+    private createChannels(): void {
         this.dataChannel = new RsBuffer(readFileSync(join(this.cacheDirectory, 'main_file_cache.dat2')));
         this.indexChannels = [];
 
@@ -75,20 +114,48 @@ export class Cache extends GameCache {
         this.metaChannel = new RsBuffer(readFileSync(join(this.cacheDirectory, 'main_file_cache.idx255')));
     }
 
-    public getFile(index: Index, fileId: number): Archive {
-        const buffer = this.getDecompressedFile(index, fileId);
+    /**
+     * Fetches a file from the specified index by ID.
+     * @param index The cache index to search.
+     * @param fileId The ID of the file to search for.
+     * @param keys The XTEA keys used to decrypt this file.
+     */
+    public getFile(index: Index | number, fileId: number, keys?: number[]): Archive {
+        if(typeof index === 'number') {
+            index = this.indices.get(index);
+        }
+
+        const buffer = this.getDecompressedFile(index, fileId, keys);
+        if(!buffer) {
+            return null;
+        }
+
         const archive = index.archives.get(fileId);
 
         if(!archive) {
             return null;
         }
 
-        archive.buffer = buffer;
+        archive.content = buffer;
         return archive;
     }
 
-    public getArchive(index: Index, archiveId: number): Archive {
-        const buffer = this.getDecompressedFile(index, archiveId);
+    /**
+     * Fetches an archive from the specified index by ID.
+     * @param index The cache index to search.
+     * @param fileId The ID of the archive to search for.
+     * @param keys The XTEA keys used to decrypt this archive.
+     */
+    public getArchive(index: Index | number, archiveId: number, keys?: number[]): Archive {
+        if(typeof index === 'number') {
+            index = this.indices.get(index);
+        }
+
+        const buffer = this.getDecompressedFile(index, archiveId, keys);
+        if(!buffer) {
+            return null;
+        }
+
         const archive = index.archives.get(archiveId);
 
         if(!archive) {
@@ -98,13 +165,19 @@ export class Cache extends GameCache {
         return archive.decodeFiles(buffer, archive.files.size);
     }
 
-    private getDecompressedFile(index: Index, fileId: number): RsBuffer {
-        const fileData = this.getRawCacheFile(index.id, fileId);
+    private getDecompressedFile(index: Index, fileId: number, keys?: number[]): RsBuffer {
+        const fileData = this.getRawFile(index.id, fileId);
         if(!fileData || fileData.getBuffer().length < 1) {
             return null;
         }
 
-        return decompress(fileData).buffer;
+        const decompressedFile = decompress(fileData, keys);
+
+        if(!decompressedFile) {
+            return null;
+        }
+
+        return decompressedFile.buffer;
     }
 
     private decodeFileIndex(buffer: RsBuffer) {
@@ -117,7 +190,7 @@ export class Cache extends GameCache {
         return { size, sector };
     }
 
-    private decodeSector(buffer: RsBuffer) {
+    private decodeFileSector(buffer: RsBuffer) {
         if(buffer.getReadable() != Cache.SECTOR_SIZE) {
             throw new Error('Not Enough Readable Sector Data');
         }
@@ -132,7 +205,12 @@ export class Cache extends GameCache {
         return { id, chunk, nextSector, type, data };
     }
 
-    public getRawCacheFile(index: number, fileId: number): RsBuffer {
+    /**
+     * Fetches raw file or archive data from the specified index.
+     * @param index The ID of the index to search.
+     * @param fileId The ID of the file or archive to search for.
+     */
+    public getRawFile(index: number, fileId: number): RsBuffer {
         const indexChannel = index == 255 ? this.metaChannel : this.indexChannels[index];
 
         let ptr = fileId * Cache.INDEX_SIZE;
@@ -153,7 +231,7 @@ export class Cache extends GameCache {
         do {
             buf = RsBuffer.create(Cache.SECTOR_SIZE);
             this.dataChannel.getBuffer().copy(buf.getBuffer(), 0, ptr, ptr + Cache.SECTOR_SIZE);
-            const sector = this.decodeSector(buf);
+            const sector = this.decodeFileSector(buf);
 
             if(remaining > Cache.DATA_SIZE) {
                 sector.data.getBuffer().copy(data.getBuffer(), data.getWriterIndex(), 0, Cache.DATA_SIZE);

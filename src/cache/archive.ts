@@ -1,16 +1,16 @@
 import { RsBuffer } from '..';
 import { JagexFile } from './jagex-file';
 
-export class Archive {
+export class Archive extends JagexFile {
 
     public nameHash: number = -1;
     public crc: number;
     public whirlpool: RsBuffer = RsBuffer.create(64);
     public version: number;
-    public buffer: RsBuffer;
     public files: Map<number, JagexFile>;
 
-    public constructor(public id: number) {
+    public constructor(id: number) {
+        super(id, null);
         this.files = new Map<number, JagexFile>();
     }
 
@@ -19,7 +19,7 @@ export class Archive {
             throw new Error('Archive size can not be less than 1.');
         }
 
-        this.buffer = buffer;
+        this.content = buffer;
         this.files = new Map<number, JagexFile>();
         buffer.setReaderIndex(buffer.getBuffer().length - 1);
         const chunkCount = buffer.readUnsignedByte();
@@ -39,7 +39,7 @@ export class Archive {
         }
 
         for(let id = 0; id < size; id++) {
-            this.files.set(id, new JagexFile(RsBuffer.create(sizes[id])));
+            this.files.set(id, new JagexFile(id, RsBuffer.create(sizes[id])));
         }
 
         buffer.setReaderIndex(0);

@@ -1,9 +1,34 @@
-import { RsBuffer } from '../../net/rs-buffer';
-import { ItemDefinition, NewFormatItemDefinition } from '../../definitions/item-definition';
-import { Archive } from '../archive';
+import { JagexFile } from '../jagex-file';
+import { IndexType } from '../index';
+import { Cache } from '../cache';
+import { logger } from '@runejs/logger/dist/logger';
 
-function decodeItemDefinition(id: number, buffer: RsBuffer) {
-    const def = new NewFormatItemDefinition();
+export class ItemDefinition {
+    id: number;
+    name: string;
+    stackable: boolean;
+    value: number;
+    members: boolean;
+    groundOptions: string[] = [ null, null, 'Take', null, null ];
+    inventoryOptions: string[] = [ null, null, null, null, 'Drop' ];
+    teamIndex: number;
+    inventoryModelId: number;
+    modelZoom: number;
+    modelRotation1: number;
+    modelRotation2: number;
+    modelOffset1: number;
+    modelOffset2: number;
+    originalModelColors: number[];
+    modifiedModelColors: number[];
+    notedId: number;
+    noteTemplateId: number;
+    stackableIds: number[];
+    stackableAmounts: number[];
+}
+
+function decodeItem(id: number, file: JagexFile): ItemDefinition {
+    const buffer = file.content;
+    const def = new ItemDefinition();
     def.id = id;
 
     while(true) {
@@ -106,13 +131,20 @@ function decodeItemDefinition(id: number, buffer: RsBuffer) {
     return def;
 }
 
-export function parseItemDefinitions(archive: Archive): Map<number, ItemDefinition> {
-    const itemDefinitions = new Map<number, ItemDefinition>();
+/**
+ * Parses the game item definition archive.
+ * @param cache The game cache instance.
+ */
+export function decodeItemDefinitions(cache: Cache): Map<number, ItemDefinition> {
+    const archive = cache.getArchive(IndexType.DEFINITIONS, 10);
+    const items = new Map<number, ItemDefinition>();
 
     for(let i = 0; i < archive.files.size; i++) {
-        const entry = archive.files.get(i).content;
-        itemDefinitions.set(i, decodeItemDefinition(i, entry));
+        const itemFile = archive.files.get(i);
+        items.set(i, decodeItem(i, itemFile));
     }
 
-    return itemDefinitions;
+    logger.info(`Decoded ${items.size} item definitions.`);
+
+    return items;
 }

@@ -1,8 +1,9 @@
 import { Cache } from '../cache';
-import { Index, IndexType } from '../index';
+import { IndexType } from '../index';
 import { RsBuffer } from '../../net/rs-buffer';
 import { logger } from '@runejs/logger/dist/logger';
 import { Archive } from '../archive';
+import { JagexFile } from '../jagex-file';
 
 export class WidgetChild {
     id: number;
@@ -76,14 +77,22 @@ export class WidgetChild {
     anInt2751?: number;
 }
 
-export class WidgetDefinition {
+export class Widget {
     id: number;
     crc: number;
     version: number;
     children: WidgetChild[] = null;
 }
 
-function parseIf1(id: number, buffer: RsBuffer): WidgetChild {
+function decodeIf1(id: number, file: JagexFile | RsBuffer): WidgetChild {
+    let buffer;
+
+    if(file instanceof JagexFile) {
+        buffer = file.content;
+    } else {
+        buffer = file;
+    }
+
     const child = new WidgetChild();
 
     child.id = id;
@@ -278,7 +287,15 @@ function parseIf1(id: number, buffer: RsBuffer): WidgetChild {
     return child;
 }
 
-function parseIf3(id: number, buffer: RsBuffer): WidgetChild {
+function decodeIf3(id: number, file: JagexFile | RsBuffer): WidgetChild {
+    let buffer;
+
+    if(file instanceof JagexFile) {
+        buffer = file.content;
+    } else {
+        buffer = file;
+    }
+
     const child = new WidgetChild();
     
     child.id = id;
@@ -362,7 +379,16 @@ function parseIf3(id: number, buffer: RsBuffer): WidgetChild {
     return child;
 }
 
-function parseSingleWidget(id: number, crc: number, version: number, buffer: RsBuffer): WidgetDefinition {
+/**
+ * Parses a single widget file (a widget that contains a single child)
+ * @param id The ID of the widget.
+ * @param crc The CRC value of the widget file.
+ * @param version The version number of the widget file.
+ * @param file The widget file.
+ */
+function parseWidgetFile(id: number, crc: number, version: number, file: JagexFile): Widget {
+    const buffer = file.content;
+
     const children = new Array(1);
     if(buffer == null || buffer.getBuffer().length === 0) {
         children[0] = new WidgetChild();
@@ -370,34 +396,41 @@ function parseSingleWidget(id: number, crc: number, version: number, buffer: RsB
     } else {
         const type = buffer.getBuffer().readInt8(0);
         if(type === -1) {
-            children[0] = parseIf3(0, buffer);
+            children[0] = decodeIf3(0, buffer);
         } else {
-            children[0] = parseIf1(0, buffer);
+            children[0] = decodeIf1(0, buffer);
         }
     }
 
     return { id, crc, version, children };
 }
 
-function parseWidget(id: number, crc: number, version: number, widgetArchive: Archive): WidgetDefinition {
+/**
+ * Parses a widget archive, which contains a number of widget child files.
+ * @param id The ID of the widget.
+ * @param crc The CRC value of the widget archive.
+ * @param version The version number of the widget file.
+ * @param widgetArchive The widget archive.
+ */
+function parseWidgetArchive(id: number, crc: number, version: number, widgetArchive: Archive): Widget {
     let children: WidgetChild[] = null;
 
     if(widgetArchive.files.size > 0) {
         children = new Array(widgetArchive.files.size).fill(null);
 
         for(let i = 0; i < widgetArchive.files.size; i++) {
-            const entry = widgetArchive.files[i];
-            if(entry == null || entry.getBuffer().length === 0) {
+            const widgetChildFile: JagexFile = widgetArchive.files[i];
+            if(widgetChildFile == null || !widgetChildFile.content || widgetChildFile.content.getBuffer().length === 0) {
                 children[i] = new WidgetChild();
                 children[i].id = i;
                 continue;
             }
 
-            const type = entry.getBuffer().readInt8(0);
+            const type = widgetChildFile.content.getBuffer().readInt8(0);
             if(type === -1) {
-                children[i] = parseIf3(i, entry);
+                children[i] = decodeIf3(i, widgetChildFile);
             } else {
-                children[i] = parseIf1(i, entry);
+                children[i] = decodeIf1(i, widgetChildFile);
             }
         }
     }
@@ -405,28 +438,30 @@ function parseWidget(id: number, crc: number, version: number, widgetArchive: Ar
     return { id, crc, version, children };
 }
 
-export const parseWidgets = (gameCache: Cache): Map<number, WidgetDefinition> => {
-    const index = gameCache.indices.get(IndexType.WIDGETS);
-    const widgets = new Map<number, WidgetDefinition>();
+/**
+ * Fetches the widgets from the game cache and parses them.
+ * @param cache The game cache instance.
+ */
+export const decodeWidgets = (cache: Cache): Map<number, Widget> => {
+    const index = cache.indices.get(IndexType.WIDGETS);
+    const widgets = new Map<number, Widget>();
     const widgetCount = index.archives.size;
 
-    logger.info(`Parsing new format widget definitions...`);
-
     for(let i = 0; i < widgetCount; i++) {
-        const widgetFile = gameCache.getArchive(index, i);
+        const widgetFile = cache.getArchive(index, i);
         const entry = index.archives.get(i);
         const crc = entry?.crc || -1;
         const version = entry?.version || 0;
 
         if(widgetFile.files.size === 1 && widgetFile.files.get(0).content.getBuffer().length === 0) {
-            widgetFile.buffer.setReaderIndex(0);
-            widgets.set(i, parseSingleWidget(i, crc, version, widgetFile.buffer));
+            widgetFile.content.setReaderIndex(0);
+            widgets.set(i, parseWidgetFile(i, crc, version, widgetFile));
         } else {
-            widgets.set(i, parseWidget(i, crc, version, widgetFile));
+            widgets.set(i, parseWidgetArchive(i, crc, version, widgetFile));
         }
     }
 
-    logger.info(`Parsed ${widgets.size} out of ${widgetCount} new format widget definitions.`);
+    logger.info(`Decoded ${widgets.size} widgets.`);
 
     return widgets;
 };

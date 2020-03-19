@@ -4,6 +4,9 @@ import { JagexFile } from './jagex-file';
 import { hash } from '../util/name-hash';
 import { Cache } from './cache';
 
+/**
+ * A list of cache index types.
+ */
 export enum IndexType {
     SKELETON = 0,
     SKIN = 1,
@@ -21,6 +24,9 @@ export enum IndexType {
     META = 13
 }
 
+/**
+ * Information and archives relating to a specific cache index.
+ */
 export class Index {
 
     public static readonly FLAG_NAME = 0x01;
@@ -35,13 +41,61 @@ export class Index {
         this.parseIndex();
     }
 
-    public getArchive(identifier: number | string, hasFiles: boolean = true): Archive {
+    /**
+     * Fetches a file from this index by ID or by name.
+     * @param identifier The ID or name of the file to search for.
+     * @param keys The XTEA keys used to decrypt this file.
+     */
+    public getFile(identifier: number | string, keys?: number[]): Archive {
+        let archive = this.findArchiveOrFile(identifier);
+        if(!archive) {
+            return null;
+        }
+
+        if(!archive.content) {
+            archive = this.cache.getFile(this, archive.id, keys);
+        }
+
+        if(!archive || !archive.content) {
+            return null;
+        }
+
+        return archive;
+    }
+
+    /**
+     * Fetches an archive from this index by ID or by name.
+     * @param identifier The ID or name of the archive to search for.
+     * @param keys The XTEA keys used to decrypt this archive.
+     */
+    public getArchive(identifier: number | string, keys?: number[]): Archive {
+        let archive = this.findArchiveOrFile(identifier);
+        if(!archive) {
+            return null;
+        }
+
+        if(archive.files.size === 0) {
+            archive = this.cache.getArchive(this, archive.id, keys);
+        }
+
+        if(!archive || archive.files.size === 0) {
+            return null;
+        }
+
+        return archive;
+    }
+
+    private findArchiveOrFile(identifier: number | string): Archive {
         let archive: Archive;
 
         if(typeof identifier === 'string') {
             const nameHash = hash(identifier);
             const archives = this.archives.values();
             for(const a of archives) {
+                if(!a.nameHash) {
+                    continue;
+                }
+
                 if(a.nameHash === nameHash) {
                     archive = a;
                     break;
@@ -52,15 +106,7 @@ export class Index {
         }
 
         if(!archive) {
-            throw new Error('Specified archive not found!');
-        }
-
-        if(archive.files.size === 0) {
-            archive = this.cache.getArchive(this, archive.id);
-        }
-
-        if(archive.files.size === 0) {
-            throw new Error('Specified archive contains zero files!');
+            return null;
         }
 
         return archive;
@@ -138,16 +184,16 @@ export class Index {
             size++;
 
             /* allocate specific entries within the array */
-            for(const child of members[id]) {
-                this.archives.get(id).files.set(child, new JagexFile(null));
+            for(const childId of members[id]) {
+                this.archives.get(id).files.set(childId, new JagexFile(childId, null));
             }
         }
 
         /* read the child name hashes */
         if((this.flags & Index.FLAG_NAME) != 0) {
             for(const id of ids) {
-                for(const child of members[id]) {
-                    this.archives.get(id).files.get(child).nameHash = this.buffer.readIntBE();
+                for(const childId of members[id]) {
+                    this.archives.get(id).files.get(childId).nameHash = this.buffer.readIntBE();
                 }
             }
         }

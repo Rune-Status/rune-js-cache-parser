@@ -4,7 +4,7 @@ export class JagexFile {
 
     public nameHash: number;
 
-    public constructor(public content: RsBuffer) {
+    public constructor(public id: number, public content: RsBuffer) {
     }
 
 }
