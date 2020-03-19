@@ -8,8 +8,8 @@ export { LandscapeObjectDefinition, EarlyFormatLandscapeObjectDefinition, NewFor
 export { ItemDefinition, EarlyFormatItemDefinition, NewFormatItemDefinition } from './definitions/item-definition';
 export { NpcDefinition, EarlyFormatNpcDefinition, NewFormatNpcDefinition } from './definitions/npc-definition';
 
-export { NewFormatGameCache } from './cache-new-format/new-format-game-cache';
-export { WidgetDefinition, WidgetChild } from './cache-new-format/screen/widgets';
-export { Sprite } from './cache-new-format/screen/sprites';
+export { Cache } from './cache/cache';
+export { WidgetDefinition, WidgetChild } from './cache/screen/widgets';
+export { Sprite } from './cache/screen/sprites';
 
 export { GameCache } from './cache';

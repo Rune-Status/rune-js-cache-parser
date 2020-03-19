@@ -13,7 +13,7 @@ export function decompressBzip(data: RsBuffer): RsBuffer {
     return new RsBuffer(seekBzip.decode(buffer));
 }
 
-export function decompressNewFormat(buffer: RsBuffer): { type: number, data: RsBuffer, version: number } {
+export function decompress(buffer: RsBuffer): { type: number, buffer: RsBuffer, version: number } {
     const type = buffer.readUnsignedByte();
     const length = buffer.readIntBE();
 
@@ -27,7 +27,7 @@ export function decompressNewFormat(buffer: RsBuffer): { type: number, data: RsB
             version = buffer.readShortBE();
         }
 
-        return { type, data: uncompressedData, version };
+        return { type, buffer: uncompressedData, version };
     } else {
         const uncompressedLength = buffer.readIntBE();
 
@@ -53,6 +53,6 @@ export function decompressNewFormat(buffer: RsBuffer): { type: number, data: RsB
             version = buffer.readShortBE();
         }
 
-        return { type, data: uncompressed, version };
+        return { type, buffer: uncompressed, version };
     }
 }

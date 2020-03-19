@@ -1,8 +1,8 @@
-import { NewFormatGameCache } from '../new-format-game-cache';
-import { ReferenceTable } from '../reference-table';
-import { NewCacheArchive } from '../new-cache-archive';
+import { Cache } from '../cache';
+import { Index, IndexType } from '../index';
 import { RsBuffer } from '../../net/rs-buffer';
 import { logger } from '@runejs/logger/dist/logger';
+import { Archive } from '../archive';
 
 export class WidgetChild {
     id: number;
@@ -379,14 +379,14 @@ function parseSingleWidget(id: number, crc: number, version: number, buffer: RsB
     return { id, crc, version, children };
 }
 
-function parseWidget(id: number, crc: number, version: number, widgetArchive: NewCacheArchive): WidgetDefinition {
+function parseWidget(id: number, crc: number, version: number, widgetArchive: Archive): WidgetDefinition {
     let children: WidgetChild[] = null;
 
-    if(widgetArchive.entries.length > 0) {
-        children = new Array(widgetArchive.entries.length).fill(null);
+    if(widgetArchive.files.size > 0) {
+        children = new Array(widgetArchive.files.size).fill(null);
 
-        for(let i = 0; i < widgetArchive.entries.length; i++) {
-            const entry = widgetArchive.entries[i];
+        for(let i = 0; i < widgetArchive.files.size; i++) {
+            const entry = widgetArchive.files[i];
             if(entry == null || entry.getBuffer().length === 0) {
                 children[i] = new WidgetChild();
                 children[i].id = i;
@@ -405,19 +405,20 @@ function parseWidget(id: number, crc: number, version: number, widgetArchive: Ne
     return { id, crc, version, children };
 }
 
-export const parseWidgets = (gameCache: NewFormatGameCache, referenceTable: ReferenceTable): Map<number, WidgetDefinition> => {
+export const parseWidgets = (gameCache: Cache): Map<number, WidgetDefinition> => {
+    const index = gameCache.indices.get(IndexType.WIDGETS);
     const widgets = new Map<number, WidgetDefinition>();
-    const widgetCount = referenceTable.entries.size;
+    const widgetCount = index.archives.size;
 
     logger.info(`Parsing new format widget definitions...`);
 
     for(let i = 0; i < widgetCount; i++) {
-        const widgetFile = gameCache.getDecodedArchiveFile(referenceTable, 3, i);
-        const entry = referenceTable.entries.get(i);
+        const widgetFile = gameCache.getArchive(index, i);
+        const entry = index.archives.get(i);
         const crc = entry?.crc || -1;
         const version = entry?.version || 0;
 
-        if(widgetFile.entries.length === 1 && widgetFile.entries[0].getBuffer().length === 0) {
+        if(widgetFile.files.size === 1 && widgetFile.files.get(0).content.getBuffer().length === 0) {
             widgetFile.buffer.setReaderIndex(0);
             widgets.set(i, parseSingleWidget(i, crc, version, widgetFile.buffer));
         } else {

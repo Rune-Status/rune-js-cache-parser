@@ -1,6 +1,6 @@
-import { NewCacheArchive } from '../new-cache-archive';
 import { RsBuffer } from '../../net/rs-buffer';
 import { NewFormatNpcDefinition, NpcDefinition } from '../../definitions/npc-definition';
+import { Archive } from '../archive';
 
 function decodeNpcDefinition(id: number, buffer: RsBuffer): NpcDefinition {
     const def = new NewFormatNpcDefinition();
@@ -88,11 +88,11 @@ function decodeNpcDefinition(id: number, buffer: RsBuffer): NpcDefinition {
     return def;
 }
 
-export function parseNpcDefinitions(archive: NewCacheArchive): Map<number, NpcDefinition> {
+export function parseNpcDefinitions(archive: Archive): Map<number, NpcDefinition> {
     const npcDefinitions = new Map<number, NpcDefinition>();
 
-    for(let i = 0; i < archive.entries.length; i++) {
-        const entry = archive.entries[i];
+    for(let i = 0; i < archive.files.size; i++) {
+        const entry = archive.files.get(i).content;
         npcDefinitions.set(i, decodeNpcDefinition(i, entry));
     }
 

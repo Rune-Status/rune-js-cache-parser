@@ -1,8 +1,9 @@
-import { NewFormatGameCache } from '../new-format-game-cache';
-import { ReferenceTable } from '../reference-table';
+import { Cache } from '../cache';
+import { Index, IndexType } from '../index';
 import { RsBuffer } from '../../net/rs-buffer';
 import { PNG } from 'pngjs';
 import { logger } from '@runejs/logger/dist/logger';
+import { Archive } from '../archive';
 
 function toRgba(num: number): number[] {
     num >>>= 0;
@@ -53,45 +54,47 @@ export class Sprite {
 
 }
 
-function parseSprite(id: number, crc: number, version: number, file: RsBuffer): Sprite[] {
-    file.setReaderIndex(file.getBuffer().length - 2);
-    const spriteCount = file.readUnsignedShortBE();
+function parseSpriteArchive(id: number, crc: number, version: number, archive: Archive): Sprite[] {
+    const buffer = archive.buffer;
+
+    buffer.setReaderIndex(buffer.getBuffer().length - 2);
+    const spriteCount = buffer.readUnsignedShortBE();
     const sprites: Sprite[] = new Array(spriteCount);
 
-    file.setReaderIndex(file.getBuffer().length - 7 - spriteCount * 8);
-    const width = file.readUnsignedShortBE();
-    const height = file.readUnsignedShortBE();
-    const paletteLength = file.readUnsignedByte() + 1;
+    buffer.setReaderIndex(buffer.getBuffer().length - 7 - spriteCount * 8);
+    const width = buffer.readUnsignedShortBE();
+    const height = buffer.readUnsignedShortBE();
+    const paletteLength = buffer.readUnsignedByte() + 1;
 
     for(let i = 0; i < spriteCount; i++) {
         sprites[i] = new Sprite(id, i, crc, version, width, height);
     }
 
     for(let i = 0; i < spriteCount; i++) {
-        sprites[i].offsetX = file.readUnsignedShortBE();
+        sprites[i].offsetX = buffer.readUnsignedShortBE();
     }
     for(let i = 0; i < spriteCount; i++) {
-        sprites[i].offsetY = file.readUnsignedShortBE();
+        sprites[i].offsetY = buffer.readUnsignedShortBE();
     }
     for(let i = 0; i < spriteCount; i++) {
-        sprites[i].width = file.readUnsignedShortBE();
+        sprites[i].width = buffer.readUnsignedShortBE();
     }
     for(let i = 0; i < spriteCount; i++) {
-        sprites[i].height = file.readUnsignedShortBE();
+        sprites[i].height = buffer.readUnsignedShortBE();
     }
 
-    file.setReaderIndex(file.getBuffer().length - 7 - spriteCount * 8 - (paletteLength - 1) * 3);
+    buffer.setReaderIndex(buffer.getBuffer().length - 7 - spriteCount * 8 - (paletteLength - 1) * 3);
     const palette: number[] = new Array(paletteLength);
 
     for(let i = 1; i < paletteLength; i++) {
-        palette[i] = file.readMediumBE();
+        palette[i] = buffer.readMediumBE();
 
         if(palette[i] === 0) {
             palette[i] = 1;
         }
     }
 
-    file.setReaderIndex(0);
+    buffer.setReaderIndex(0);
 
     for(let i = 0; i < spriteCount; i++) {
         const sprite = sprites[i];
@@ -102,16 +105,16 @@ function parseSprite(id: number, crc: number, version: number, file: RsBuffer): 
         const pixelAlphas: number[] = new Array(dimension);
         sprite.palette = palette;
 
-        const flags = file.readUnsignedByte();
+        const flags = buffer.readUnsignedByte();
 
         if((flags & 0b01) === 0) {
             for(let j = 0; j < dimension; j++) {
-                pixelPaletteIndicies[j] = file.readByte();
+                pixelPaletteIndicies[j] = buffer.readByte();
             }
         } else {
             for(let x = 0; x < spriteWidth; x++) {
                 for(let y = 0; y < spriteHeight; y++) {
-                    pixelPaletteIndicies[spriteWidth * y + x] = file.readByte();
+                    pixelPaletteIndicies[spriteWidth * y + x] = buffer.readByte();
                 }
             }
         }
@@ -126,12 +129,12 @@ function parseSprite(id: number, crc: number, version: number, file: RsBuffer): 
         } else {
             if((flags & 0b01) === 0) {
                 for(let j = 0; j < dimension; j++) {
-                    pixelAlphas[j] = file.readByte();
+                    pixelAlphas[j] = buffer.readByte();
                 }
             } else {
                 for(let x = 0; x < spriteWidth; x++) {
                     for(let y = 0; y < spriteHeight; y++) {
-                        pixelAlphas[spriteWidth * y + x] = file.readByte();
+                        pixelAlphas[spriteWidth * y + x] = buffer.readByte();
                     }
                 }
             }
@@ -149,18 +152,19 @@ function parseSprite(id: number, crc: number, version: number, file: RsBuffer): 
     return sprites;
 }
 
-export const parseSprites = (gameCache: NewFormatGameCache, referenceTable: ReferenceTable): Map<string, Sprite> => {
+export const parseSprites = (gameCache: Cache): Map<string, Sprite> => {
+    const index = gameCache.indices.get(IndexType.SPRITES);
     const sprites = new Map<string, Sprite>();
-    const spriteCount = referenceTable.entries.size;
+    const spriteCount = index.archives.size;
 
     logger.info(`Parsing new format sprites...`);
 
     for(let i = 0; i < spriteCount; i++) {
-        const entry = referenceTable.entries.get(i);
-        const spriteFile = gameCache.getDecompressedFile(8, i);
+        const entry = index.archives.get(i);
+        const spriteArchive = gameCache.getFile(gameCache.indices.get(IndexType.SPRITES), i);
 
-        if(spriteFile && spriteFile.getBuffer().length > 0) {
-            const parsedSprites = parseSprite(i, entry.crc, entry.version, spriteFile);
+        if(spriteArchive && spriteArchive.buffer.getBuffer().length > 0) {
+            const parsedSprites = parseSpriteArchive(i, entry.crc, entry.version, spriteArchive);
 
             for(const sprite of parsedSprites) {
                 sprites.set(`${sprite.id}:${sprite.frame}`, sprite);

@@ -1,6 +1,6 @@
-import { NewCacheArchive } from '../new-cache-archive';
 import { RsBuffer } from '../../net/rs-buffer';
 import { NewFormatLandscapeObjectDefinition, LandscapeObjectDefinition } from '../../definitions/landscape-object-definition';
+import { Archive } from '../archive';
 
 function decodeLandscapeObjectDefinition(id: number, buffer: RsBuffer): LandscapeObjectDefinition {
     const def = new NewFormatLandscapeObjectDefinition();
@@ -119,11 +119,11 @@ function decodeLandscapeObjectDefinition(id: number, buffer: RsBuffer): Landscap
     return def;
 }
 
-export function parseLandscapeObjectDefinitions(archive: NewCacheArchive): Map<number, LandscapeObjectDefinition> {
+export function parseLandscapeObjectDefinitions(archive: Archive): Map<number, LandscapeObjectDefinition> {
     const landscapeObjectDefinitions = new Map<number, LandscapeObjectDefinition>();
 
-    for(let i = 0; i < archive.entries.length; i++) {
-        const entry = archive.entries[i];
+    for(let i = 0; i < archive.files.size; i++) {
+        const entry = archive.files.get(i).content;
         landscapeObjectDefinitions.set(i, decodeLandscapeObjectDefinition(i, entry));
     }
 

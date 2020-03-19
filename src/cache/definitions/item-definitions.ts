@@ -1,6 +1,6 @@
 import { RsBuffer } from '../../net/rs-buffer';
 import { ItemDefinition, NewFormatItemDefinition } from '../../definitions/item-definition';
-import { NewCacheArchive } from '../new-cache-archive';
+import { Archive } from '../archive';
 
 function decodeItemDefinition(id: number, buffer: RsBuffer) {
     const def = new NewFormatItemDefinition();
@@ -106,11 +106,11 @@ function decodeItemDefinition(id: number, buffer: RsBuffer) {
     return def;
 }
 
-export function parseItemDefinitions(archive: NewCacheArchive): Map<number, ItemDefinition> {
+export function parseItemDefinitions(archive: Archive): Map<number, ItemDefinition> {
     const itemDefinitions = new Map<number, ItemDefinition>();
 
-    for(let i = 0; i < archive.entries.length; i++) {
-        const entry = archive.entries[i];
+    for(let i = 0; i < archive.files.size; i++) {
+        const entry = archive.files.get(i).content;
         itemDefinitions.set(i, decodeItemDefinition(i, entry));
     }
 
