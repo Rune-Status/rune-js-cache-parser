@@ -1,6 +1,6 @@
 import { gunzipSync } from 'zlib';
 import { decryptXtea } from './xtea';
-import { ByteBuffer } from '../net/byte-buffer';
+import { ByteBuffer } from '@runejs/byte-buffer';
 const seekBzip = require('seek-bzip');
 
 export function decompressBzip(data: ByteBuffer): ByteBuffer {

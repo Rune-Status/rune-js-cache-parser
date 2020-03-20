@@ -11,7 +11,7 @@ import { decodeWidgets, Widget } from './screen/widgets';
 import { decodeSprites, Sprite } from './screen/sprites';
 import { decodeRegions, MapData } from './map/regions';
 import { logger } from '@runejs/logger/dist/logger';
-import { ByteBuffer } from '../net/byte-buffer';
+import { ByteBuffer } from '@runejs/byte-buffer';
 
 /**
  * Details about which cache content archives to automatically decode when loading a game cache.

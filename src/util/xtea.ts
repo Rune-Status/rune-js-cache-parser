@@ -1,4 +1,4 @@
-import { ByteBuffer } from '../net/byte-buffer';
+import { ByteBuffer } from '@runejs/byte-buffer';
 
 const GOLDEN_RATIO = 0x9E3779B9;
 const ROUNDS = 32;

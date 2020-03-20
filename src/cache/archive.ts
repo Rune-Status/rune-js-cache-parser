@@ -1,5 +1,5 @@
 import { JagexFile } from './jagex-file';
-import { ByteBuffer } from '../net/byte-buffer';
+import { ByteBuffer } from '@runejs/byte-buffer';
 
 export class Archive extends JagexFile {
 

@@ -19,6 +19,7 @@
     },
     "homepage": "https://github.com/rune-js/cache-parser#readme",
     "dependencies": {
+        "@runejs/byte-buffer": "^1.0.0",
         "@runejs/logger": "^1.0.0",
         "pngjs": "^3.4.0",
         "seek-bzip": "^1.0.5",

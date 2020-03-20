@@ -3,7 +3,7 @@ import { IndexType } from '../index';
 import { logger } from '@runejs/logger/dist/logger';
 import { Archive } from '../archive';
 import { JagexFile } from '../jagex-file';
-import { ByteBuffer } from '../../net/byte-buffer';
+import { ByteBuffer } from '@runejs/byte-buffer';
 
 export class WidgetChild {
     id: number;
