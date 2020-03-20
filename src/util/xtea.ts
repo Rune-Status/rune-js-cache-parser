@@ -1,19 +1,19 @@
-import { RsBuffer } from '../net/rs-buffer';
+import { ByteBuffer } from '@runejs/byte-buffer';
 
 const GOLDEN_RATIO = 0x9E3779B9;
 const ROUNDS = 32;
 
-export function decryptXtea(input: RsBuffer, keys: number[], length: number): RsBuffer {
+export function decryptXtea(input: ByteBuffer, keys: number[], length: number): ByteBuffer {
     if(!keys || keys.length === 0) {
         return input;
     }
 
-    const output = RsBuffer.create(length);
+    const output = new ByteBuffer(length);
     const numBlocks = Math.floor(length / 8);
 
     for(let block = 0; block < numBlocks; block++) {
-        let v0 = input.readIntBE();
-        let v1 = input.readIntBE();
+        let v0 = input.get('INT');
+        let v1 = input.get('INT');
         let sum = GOLDEN_RATIO * ROUNDS;
 
         for(let i = 0; i < ROUNDS; i++) {
@@ -22,11 +22,11 @@ export function decryptXtea(input: RsBuffer, keys: number[], length: number): Rs
             v0 -= (((v1 << 4) ^ (v1 >>> 5)) + v1) ^ (sum + keys[sum & 3]);
         }
 
-        output.writeIntBE(v0);
-        output.writeIntBE(v1);
+        output.put(v0, 'INT');
+        output.put(v1, 'INT');
     }
 
-    input.getBuffer().copy(output.getBuffer(), output.getWriterIndex(), input.getReaderIndex());
+    input.copy(output, output.writerIndex, input.readerIndex);
 
     return output;
 }

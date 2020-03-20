@@ -1,6 +1,5 @@
 import { join } from 'path';
 import { readFileSync } from 'fs';
-import { RsBuffer } from '../net/rs-buffer';
 import { Index } from './index';
 import { Archive } from './archive';
 import { decompress } from '../util/compression-util';
@@ -12,6 +11,7 @@ import { decodeWidgets, Widget } from './screen/widgets';
 import { decodeSprites, Sprite } from './screen/sprites';
 import { decodeRegions, MapData } from './map/regions';
 import { logger } from '@runejs/logger/dist/logger';
+import { ByteBuffer } from '@runejs/byte-buffer';
 
 /**
  * Details about which cache content archives to automatically decode when loading a game cache.
@@ -36,9 +36,9 @@ export class Cache {
     public static readonly DATA_SIZE = 512;
     public static readonly SECTOR_SIZE = Cache.HEADER_SIZE + Cache.DATA_SIZE;
 
-    public dataChannel: RsBuffer;
-    public indexChannels: RsBuffer[];
-    public metaChannel: RsBuffer;
+    public dataChannel: ByteBuffer;
+    public indexChannels: ByteBuffer[];
+    public metaChannel: ByteBuffer;
 
     public indices: Map<number, Index> = new Map<number, Index>();
 
@@ -99,19 +99,19 @@ export class Cache {
     }
 
     private createChannels(): void {
-        this.dataChannel = new RsBuffer(readFileSync(join(this.cacheDirectory, 'main_file_cache.dat2')));
+        this.dataChannel = new ByteBuffer(readFileSync(join(this.cacheDirectory, 'main_file_cache.dat2')));
         this.indexChannels = [];
 
         for(let i = 0; i < 254; i++) {
             try {
-                const index = new RsBuffer(readFileSync(join(this.cacheDirectory, `main_file_cache.idx${i}`)));
+                const index = new ByteBuffer(readFileSync(join(this.cacheDirectory, `main_file_cache.idx${i}`)));
                 this.indexChannels.push(index);
             } catch(error) {
                 break;
             }
         }
 
-        this.metaChannel = new RsBuffer(readFileSync(join(this.cacheDirectory, 'main_file_cache.idx255')));
+        this.metaChannel = new ByteBuffer(readFileSync(join(this.cacheDirectory, 'main_file_cache.idx255')));
     }
 
     /**
@@ -165,9 +165,9 @@ export class Cache {
         return archive.decodeFiles(buffer, archive.files.size);
     }
 
-    private getDecompressedFile(index: Index, fileId: number, keys?: number[]): RsBuffer {
+    private getDecompressedFile(index: Index, fileId: number, keys?: number[]): ByteBuffer {
         const fileData = this.getRawFile(index.id, fileId);
-        if(!fileData || fileData.getBuffer().length < 1) {
+        if(!fileData || fileData.length < 1) {
             return null;
         }
 
@@ -180,27 +180,27 @@ export class Cache {
         return decompressedFile.buffer;
     }
 
-    private decodeFileIndex(buffer: RsBuffer) {
-        if(buffer.getReadable() != Cache.INDEX_SIZE) {
-            throw new Error('Not Enough Readable Index Data');
+    private decodeFileIndex(buffer: ByteBuffer) {
+        if(buffer.readable != Cache.INDEX_SIZE) {
+            throw new Error(`Not Enough Readable Index Data: Buffer contains ${buffer.readable} but needed ${Cache.INDEX_SIZE}`);
         }
 
-        const size = buffer.readMediumBE();
-        const sector = buffer.readMediumBE();
+        const size = buffer.get('INT24');
+        const sector = buffer.get('INT24');
         return { size, sector };
     }
 
-    private decodeFileSector(buffer: RsBuffer) {
-        if(buffer.getReadable() != Cache.SECTOR_SIZE) {
-            throw new Error('Not Enough Readable Sector Data');
+    private decodeFileSector(buffer: ByteBuffer) {
+        if(buffer.readable != Cache.SECTOR_SIZE) {
+            throw new Error(`Not Enough Readable Sector Data: Buffer contains ${buffer.readable} but needed ${Cache.SECTOR_SIZE}`);
         }
 
-        const id = buffer.readUnsignedShortBE();
-        const chunk = buffer.readUnsignedShortBE();
-        const nextSector = buffer.readMediumBE();
-        const type = buffer.readUnsignedByte();
-        const data = RsBuffer.create(Cache.DATA_SIZE);
-        buffer.getBuffer().copy(data.getBuffer(), 0, buffer.getReaderIndex(), buffer.getReaderIndex() + Cache.DATA_SIZE);
+        const id = buffer.get('SHORT', 'UNSIGNED');
+        const chunk = buffer.get('SHORT', 'UNSIGNED');
+        const nextSector = buffer.get('INT24');
+        const type = buffer.get('BYTE', 'UNSIGNED');
+        const data = new ByteBuffer(Cache.DATA_SIZE);
+        buffer.copy(data, 0, buffer.readerIndex, buffer.readerIndex + Cache.DATA_SIZE);
 
         return { id, chunk, nextSector, type, data };
     }
@@ -210,32 +210,32 @@ export class Cache {
      * @param index The ID of the index to search.
      * @param fileId The ID of the file or archive to search for.
      */
-    public getRawFile(index: number, fileId: number): RsBuffer {
+    public getRawFile(index: number, fileId: number): ByteBuffer {
         const indexChannel = index == 255 ? this.metaChannel : this.indexChannels[index];
 
         let ptr = fileId * Cache.INDEX_SIZE;
-        if(ptr < 0 || ptr >= indexChannel.getBuffer().length) {
+        if(ptr < 0 || ptr >= indexChannel.length) {
             throw new Error('File Not Found');
         }
 
-        let buf = RsBuffer.create(Cache.INDEX_SIZE);
-        indexChannel.getBuffer().copy(buf.getBuffer(), 0, ptr, ptr + Cache.INDEX_SIZE);
+        let buf = new ByteBuffer(Cache.INDEX_SIZE);
+        indexChannel.copy(buf, 0, ptr, ptr + Cache.INDEX_SIZE);
 
         const fileIndex = this.decodeFileIndex(buf);
 
-        const data = RsBuffer.create(fileIndex.size);
+        const data = new ByteBuffer(fileIndex.size);
 
         let chunk = 0, remaining = fileIndex.size;
         ptr = fileIndex.sector * Cache.SECTOR_SIZE;
 
         do {
-            buf = RsBuffer.create(Cache.SECTOR_SIZE);
-            this.dataChannel.getBuffer().copy(buf.getBuffer(), 0, ptr, ptr + Cache.SECTOR_SIZE);
+            buf = new ByteBuffer(Cache.SECTOR_SIZE);
+            this.dataChannel.copy(buf, 0, ptr, ptr + Cache.SECTOR_SIZE);
             const sector = this.decodeFileSector(buf);
 
             if(remaining > Cache.DATA_SIZE) {
-                sector.data.getBuffer().copy(data.getBuffer(), data.getWriterIndex(), 0, Cache.DATA_SIZE);
-                data.setWriterIndex(data.getWriterIndex() + Cache.DATA_SIZE);
+                sector.data.copy(data, data.writerIndex, 0, Cache.DATA_SIZE);
+                data.writerIndex = (data.writerIndex + Cache.DATA_SIZE);
                 remaining -= Cache.DATA_SIZE;
 
                 if(sector.type != index) {
@@ -252,8 +252,8 @@ export class Cache {
 
                 ptr = sector.nextSector * Cache.SECTOR_SIZE;
             } else {
-                sector.data.getBuffer().copy(data.getBuffer(), data.getWriterIndex(), 0, remaining);
-                data.setWriterIndex(data.getWriterIndex() + remaining);
+                sector.data.copy(data, data.writerIndex, 0, remaining);
+                data.writerIndex = (data.writerIndex + remaining);
                 remaining = 0;
             }
         } while (remaining > 0);

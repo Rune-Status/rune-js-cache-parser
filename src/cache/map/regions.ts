@@ -48,16 +48,16 @@ function decodeTiles(mapArchive: Archive, mapRegionX: number, mapRegionY: number
                 const tile = new Tile(x + mapRegionX, y + mapRegionY, level);
 
                 while(true) {
-                    const opcode = buffer.readUnsignedByte();
+                    const opcode = buffer.get('BYTE', 'UNSIGNED');
 
                     if(opcode === 0) {
                         break;
                     } else if(opcode === 1) {
-                        tile.height = buffer.readUnsignedByte();
+                        tile.height = buffer.get('BYTE', 'UNSIGNED');
                         break;
                     } else if(opcode <= 49) {
                         tile.attrOpcode = opcode;
-                        tile.overlayId = buffer.readByte();
+                        tile.overlayId = buffer.get('BYTE');
                         tile.overlayPath = (opcode - 2) / 4;
                         tile.overlayOrientation = opcode - 2 & 3;
                     } else if(opcode <= 81) {
@@ -87,7 +87,7 @@ function decodeObjects(locationArchive: Archive, mapRegionX: number, mapRegionY:
     let objectId = -1;
 
     while(true) {
-        const objectIdOffset = buffer.readSmart();
+        const objectIdOffset = buffer.get('SMART');
 
         if(objectIdOffset === 0) {
             break;
@@ -97,7 +97,7 @@ function decodeObjects(locationArchive: Archive, mapRegionX: number, mapRegionY:
         let objectPositionInfo = 0;
 
         while(true) {
-            const objectPositionInfoOffset = buffer.readSmart();
+            const objectPositionInfoOffset = buffer.get('SMART');
 
             if(objectPositionInfoOffset === 0) {
                 break;
@@ -108,7 +108,7 @@ function decodeObjects(locationArchive: Archive, mapRegionX: number, mapRegionY:
             const x = (objectPositionInfo >> 6 & 0x3f) + mapRegionX;
             const y = (objectPositionInfo & 0x3f) + mapRegionY;
             const level = objectPositionInfo >> 12 & 0x3;
-            const objectMetadata = buffer.readUnsignedByte();
+            const objectMetadata = buffer.get('BYTE', 'UNSIGNED');
             const type = objectMetadata >> 2;
             const orientation = objectMetadata & 0x3;
 
