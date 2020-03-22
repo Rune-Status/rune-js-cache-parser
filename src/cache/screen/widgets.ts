@@ -457,9 +457,6 @@ export const decodeWidgets = (cache: Cache): Map<number, Widget> => {
             widgetFile.content.readerIndex = 0;
             widgets.set(i, parseWidgetFile(i, crc, version, widgetFile));
         } else {
-            if(i === 387) {
-                console.log(widgetFile);
-            }
             widgets.set(i, parseWidgetArchive(i, crc, version, widgetFile));
         }
     }
