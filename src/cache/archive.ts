@@ -47,7 +47,7 @@ export class Archive extends JagexFile {
         for(let chunk = 0; chunk < chunkCount; chunk++) {
             for(let id = 0; id < size; id++) {
                 const chunkSize = chunkSizes[chunk][id];
-                this.files.get(id).content.writeBytes(buffer.getSlice(buffer.readerIndex, chunkSize));
+                this.files.get(id).content.putBytes(buffer.getSlice(buffer.readerIndex, chunkSize));
                 buffer.copy(this.files.get(id).content, 0, buffer.readerIndex, buffer.readerIndex + chunkSize);
                 buffer.readerIndex = (buffer.readerIndex + chunkSize);
             }
