@@ -288,7 +288,7 @@ function decodeIf1(id: number, file: JagexFile | ByteBuffer): WidgetChild {
 }
 
 function decodeIf3(id: number, file: JagexFile | ByteBuffer): WidgetChild {
-    let buffer;
+    let buffer: ByteBuffer;
 
     if(file instanceof JagexFile) {
         buffer = file.content;
@@ -328,7 +328,7 @@ function decodeIf3(id: number, file: JagexFile | ByteBuffer): WidgetChild {
     }
     
     if(child.type == 5) {
-        child.spriteId = buffer.readIntBE();
+        child.spriteId = buffer.get('INT');
         child.anInt2751 = buffer.get('SHORT', 'UNSIGNED');
         child.aBoolean2641 = buffer.get('BYTE', 'UNSIGNED') == 1;
         child.opacity = buffer.get('BYTE', 'UNSIGNED');
@@ -355,23 +355,23 @@ function decodeIf3(id: number, file: JagexFile | ByteBuffer): WidgetChild {
 
     if(child.type == 4) {
         child.fontId = buffer.get('SHORT', 'UNSIGNED');
-        child.text = buffer.readNewString();
+        child.text = buffer.getString();
         child.lineHeight = buffer.get('BYTE', 'UNSIGNED');
         child.xTextAlignment = buffer.get('BYTE', 'UNSIGNED');
         child.yTextAlignment = buffer.get('BYTE', 'UNSIGNED');
         child.textShadowed = buffer.get('BYTE', 'UNSIGNED') == 1;
-        child.textColor = buffer.readIntBE();
+        child.textColor = buffer.get('INT');
     }
     
     if(child.type == 3) {
-        child.textColor = buffer.readIntBE();
+        child.textColor = buffer.get('INT');
         child.filled = buffer.get('BYTE', 'UNSIGNED') == 1;
         child.opacity = buffer.get('BYTE', 'UNSIGNED');
     }
     
     if(child.type == 9) {
         buffer.get('BYTE', 'UNSIGNED');
-        child.textColor = buffer.readIntBE();
+        child.textColor = buffer.get('INT');
     }
 
     // @TODO cs2 support
@@ -419,8 +419,8 @@ function parseWidgetArchive(id: number, crc: number, version: number, widgetArch
         children = new Array(widgetArchive.files.size).fill(null);
 
         for(let i = 0; i < widgetArchive.files.size; i++) {
-            const widgetChildFile: JagexFile = widgetArchive.files[i];
-            if(widgetChildFile == null || !widgetChildFile.content || widgetChildFile.content.length === 0) {
+            const widgetChildFile: JagexFile = widgetArchive.files.get(i);
+            if(!widgetChildFile || !widgetChildFile.content || widgetChildFile.content.length === 0) {
                 children[i] = new WidgetChild();
                 children[i].id = i;
                 continue;
@@ -457,6 +457,9 @@ export const decodeWidgets = (cache: Cache): Map<number, Widget> => {
             widgetFile.content.readerIndex = 0;
             widgets.set(i, parseWidgetFile(i, crc, version, widgetFile));
         } else {
+            if(i === 387) {
+                console.log(widgetFile);
+            }
             widgets.set(i, parseWidgetArchive(i, crc, version, widgetFile));
         }
     }
