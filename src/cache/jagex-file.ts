@@ -1,4 +1,4 @@
-import { ByteBuffer } from '@runejs/byte-buffer';
+import { ByteBuffer } from '@runejs/core';
 
 export class JagexFile {
 

@@ -1,7 +1,7 @@
 import { Cache } from '../cache';
 import { IndexType } from '../index';
 import { PNG } from 'pngjs';
-import { logger } from '@runejs/logger/dist/logger';
+import { logger } from '@runejs/core';
 import { Archive } from '../archive';
 
 function toRgba(num: number): number[] {

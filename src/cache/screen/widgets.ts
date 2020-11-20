@@ -1,9 +1,8 @@
 import { Cache } from '../cache';
 import { IndexType } from '../index';
-import { logger } from '@runejs/logger/dist/logger';
 import { Archive } from '../archive';
 import { JagexFile } from '../jagex-file';
-import { ByteBuffer } from '@runejs/byte-buffer';
+import { ByteBuffer, logger } from '@runejs/core';
 
 export class WidgetChild {
     id: number;

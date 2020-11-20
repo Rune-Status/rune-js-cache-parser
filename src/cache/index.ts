@@ -2,7 +2,7 @@ import { Archive } from './archive';
 import { JagexFile } from './jagex-file';
 import { hash } from '../util/name-hash';
 import { Cache } from './cache';
-import { ByteBuffer } from '@runejs/byte-buffer';
+import { ByteBuffer } from '@runejs/core';
 
 /**
  * A list of cache index types.

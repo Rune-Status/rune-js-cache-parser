@@ -1,7 +1,7 @@
 import { Cache } from '../cache';
 import { IndexType } from '../index';
 import { Archive } from '../archive';
-import { logger } from '@runejs/logger/dist/logger';
+import { logger } from '@runejs/core';
 
 export class Tile {
     flags: number = 0;
@@ -39,6 +39,10 @@ export interface MapData {
 }
 
 function decodeTiles(mapArchive: Archive, mapRegionX: number, mapRegionY: number, loadAllTiles: boolean = false): Tile[] {
+    if(!mapArchive) {
+        return [];
+    }
+
     const tiles: Tile[] = [];
     const buffer = mapArchive.content;
 
@@ -78,6 +82,10 @@ function decodeTiles(mapArchive: Archive, mapRegionX: number, mapRegionY: number
 }
 
 function decodeObjects(locationArchive: Archive, mapRegionX: number, mapRegionY: number): LocationObject[] {
+    if(!locationArchive) {
+        return [];
+    }
+
     const buffer = locationArchive.content;
     if(!buffer) {
         return [];
@@ -119,6 +127,23 @@ function decodeObjects(locationArchive: Archive, mapRegionX: number, mapRegionY:
     return objects;
 }
 
+export const decodeRegion = (cache: Cache, regionX: number, regionY: number): { tiles: Tile[], objects: LocationObject[] } => {
+    const index = cache.indices.get(IndexType.MAPS);
+    const mapTileArchive = index.getFile(`m${regionX}_${regionY}`);
+    let locationObjectArchive = index.getFile(`l${regionX}_${regionY}`);
+
+    if(!mapTileArchive) {
+        return;
+    }
+
+    const worldX = (regionX & 0xff) * 64;
+    const worldY = regionY * 64;
+
+    const tiles = decodeTiles(mapTileArchive, worldX, worldY);
+    const objects = decodeObjects(locationObjectArchive, worldX, worldY);
+    return { tiles, objects };
+};
+
 export const decodeRegions = (cache: Cache): MapData => {
     const index = cache.indices.get(IndexType.MAPS);
     const tiles: Tile[] = [];
@@ -132,8 +157,10 @@ export const decodeRegions = (cache: Cache): MapData => {
         const worldX = (x & 0xff) * 64;
         const worldY = y * 64;
 
+        // @TODO offer tile and object archives up so apps can parse through them as-needed!
+
         const mapTileArchive = index.getFile(`m${x}_${y}`);
-        let locationObjectArchive = index.getFile(`l${x}_${y}`);
+        const locationObjectArchive = index.getFile(`l${x}_${y}`);
 
         if(mapTileArchive === null) {
             continue;
@@ -152,7 +179,7 @@ export const decodeRegions = (cache: Cache): MapData => {
     }
 
     logger.info(`Decoded ${tiles.length} map tiles.`);
-    logger.info(`Decoded ${locationObjects.length} location objects; missing XTEA keys for ${missingXtea}/${validMaps} files.`);
+    logger.info(`Decoded ${locationObjects.length} game objects; no object files found for ${missingXtea}/${validMaps} map regions.`);
 
     return { tiles, locationObjects };
 };

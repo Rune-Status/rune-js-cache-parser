@@ -1,7 +1,7 @@
 import { JagexFile } from '../jagex-file';
 import { IndexType } from '../index';
 import { Cache } from '../cache';
-import { logger } from '@runejs/logger/dist/logger';
+import { logger } from '@runejs/core';
 
 export class NpcDefinition {
     id: number;

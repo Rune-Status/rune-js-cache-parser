@@ -1,6 +1,6 @@
 {
     "name": "@runejs/cache-parser",
-    "version": "0.6.3",
+    "version": "0.7.0",
     "description": "A cache data decoder for 400~ era RuneScape game caches.",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -12,15 +12,14 @@
         "type": "git",
         "url": "git+ssh://git@github.com/rune-js/cache-parser.git"
     },
-    "author": "TheBlackParade",
+    "author": "Tynarus",
     "license": "GPL-3.0",
     "bugs": {
         "url": "https://github.com/rune-js/cache-parser/issues"
     },
     "homepage": "https://github.com/rune-js/cache-parser#readme",
     "dependencies": {
-        "@runejs/byte-buffer": "^1.0.8",
-        "@runejs/logger": "^1.0.0",
+        "@runejs/core": "^1.0.0-beta.0",
         "pngjs": "^3.4.0",
         "seek-bzip": "^1.0.5",
         "typescript": "^3.7.2"

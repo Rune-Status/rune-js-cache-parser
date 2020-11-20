@@ -1,7 +1,7 @@
 import { JagexFile } from '../jagex-file';
 import { Cache } from '../cache';
 import { IndexType } from '../index';
-import { logger } from '@runejs/logger/dist/logger';
+import { logger } from '@runejs/core';
 
 export class LocationObjectDefinition {
     id: number;
